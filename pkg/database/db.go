@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"gopkg.in/mgo.v2/bson"
 	"BookAPI/pkg/models"
+	"strconv"
 )
 
 type DatabaseConfig struct {
@@ -34,19 +35,24 @@ func InitializeMongoDatabase(config *DatabaseConfig) *Repository {
 	return &Repository{session: session, databaseName: config.DatabaseName, collectionName: config.CollectionName}
 }
 
-func (repo Repository) GetBook() ([]models.Book, error){
+func (repo Repository) GetBook() (models.Books, error){
 	session := repo.session.Clone()
 	defer session.Close()
 	var result []models.Book
+	var results models.Books
 	err := session.DB(repo.databaseName).C(repo.collectionName).Find(bson.M{}).All(&result)
-	return result, err
+	if err == nil {
+		results.Books = result
+	}
+	return results, err
 }
 
 func (repo Repository) GetBookById(id string) (*models.Book, error){
 	session := repo.session.Clone()
 	defer session.Close()
 	var result *models.Book
-	err := session.DB(repo.databaseName).C(repo.collectionName).FindId(bson.ObjectIdHex(id)).One(&result)
+	idNum, _ := strconv.Atoi(id)
+	err := session.DB(repo.databaseName).C(repo.collectionName).Find(bson.M{"BookId" : idNum}).One(&result)
 	return result, err
 }
 
@@ -57,16 +63,18 @@ func (repo Repository) PostBook(book *models.Book) (error){
 	return err
 }
 
-func (repo Repository) PutBook(_id string, book *models.Book) (error){
+func (repo Repository) PutBook(id string, book *models.Book) (error){
 	session := repo.session.Clone()
 	defer session.Close()
-	_, err := session.DB(repo.databaseName).C(repo.collectionName).UpsertId(bson.ObjectIdHex(_id), book)
+	idNum, _ := strconv.Atoi(id)
+	_, err := session.DB(repo.databaseName).C(repo.collectionName).Upsert(bson.M{"BookId" : idNum}, book)
 	return err
 }
 
-func (repo Repository) DeleteBook(_id string) (error){
+func (repo Repository) DeleteBook(id string) (error){
 	session := repo.session.Clone()
 	defer session.Close()
-	err := session.DB(repo.databaseName).C(repo.collectionName).RemoveId(bson.ObjectIdHex(_id))
+	idNum, _ := strconv.Atoi(id)
+	err := session.DB(repo.databaseName).C(repo.collectionName).Remove(bson.M{"BookId" : idNum})
 	return err
 }
