@@ -129,7 +129,7 @@ func Delete(repo *database.Repository) http.HandlerFunc {
 			return
 		} else{
 			repo.DeleteBook(id)
-			w.Write([]byte("Deleted: " + id))
+			//w.Write([]byte("Deleted: " + id))
 		}
 	}
 }
