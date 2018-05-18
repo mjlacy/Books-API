@@ -6,7 +6,7 @@ import (
 	"BookAPI/pkg/models"
 	"BookAPI/pkg/database"
 	"github.com/gorilla/mux"
-	"strconv"
+	"fmt"
 )
 
 func HealthCheck(w http.ResponseWriter, r *http.Request){
@@ -37,6 +37,7 @@ func GetById(repo *database.Repository) http.HandlerFunc {
 
 		output, err := repo.GetBookById(id)
 		if err != nil && output == nil {
+			fmt.Println("Err", err)
 			http.Error(w, "not found", 404)
 			return
 		}
@@ -54,18 +55,16 @@ func Post(repo *database.Repository) http.HandlerFunc {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-
-		test, err := repo.GetBookById(strconv.Itoa(int(u.BookId))) //check if a book exists with the given id in JSON body
-
+		//test, err := repo.GetBookById(strconv.Itoa(int(u.BookId))) //check if a book exists with the given id in JSON body
 		if err != nil && err.Error() != "not found" {
 			http.Error(w, "Error checking database for existing record.", 500)
 			return
 		}
 
-		if err == nil && test != nil {
-			http.Error(w, "A book already exists with the given BookId.", 400)
-			return
-		}
+		//if err == nil && test != nil {
+		//	http.Error(w, "A book already exists with the given BookId.", 400)
+		//	return
+		//}
 
 		err = repo.PostBook(&u)
 		if err != nil {
@@ -94,20 +93,20 @@ func Put(repo *database.Repository) http.HandlerFunc {
 			return
 		}
 
-		idNum, _ := strconv.ParseInt(id, 10, 32) //convert URL id string to int32
-		result := int32(idNum)
+		//idNum, _ := strconv.ParseInt(id, 10, 32) //convert URL id string to int32
+		//result := int32(idNum)
 
-		test, err := repo.GetBookById(strconv.Itoa(int(u.BookId))) //check if a book exists with the given id in JSON body
+		//test, err := repo.GetBookById(strconv.Itoa(int(u.BookId))) //check if a book exists with the given id in JSON body
 
 		if err != nil && err.Error() != "not found" {
 			http.Error(w, "Error checking database for existing record.", 500)
 			return
 		}
 
-		if err == nil && test != nil && u.BookId != result {
-			http.Error(w, "A book already exists with the given BookId.", 400)
-			return
-		}
+		//if err == nil && test != nil && u.BookId != result {
+		//	http.Error(w, "A book already exists with the given BookId.", 400)
+		//	return
+		//}
 
 		err = repo.PutBook(id, &u)
 		if err != nil {

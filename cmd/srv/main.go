@@ -21,7 +21,6 @@ func main(){
 	r.CreateRoutes(db)
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"},
-		AllowCredentials: true,
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
 	})
 	handler := cors.Default().Handler(r)

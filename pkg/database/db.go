@@ -1,12 +1,17 @@
 package database
 
 import (
-	"gopkg.in/mgo.v2"
+	//"gopkg.in/mgo.v2"
 	"encoding/base64"
 	"fmt"
-	"gopkg.in/mgo.v2/bson"
+	//"gopkg.in/mgo.v2/bson"
 	"BookAPI/pkg/models"
+	//"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/mongo"
+	"context"
+	"log"
 	"strconv"
+	"github.com/mongodb/mongo-go-driver/bson"
 )
 
 type DatabaseConfig struct {
@@ -16,7 +21,7 @@ type DatabaseConfig struct {
 }
 
 type Repository struct{
-	session        *mgo.Session
+	database       *mongo.Database
 	databaseName   string
 	collectionName string
 }
@@ -26,21 +31,35 @@ func InitializeMongoDatabase(config *DatabaseConfig) *Repository {
 	if err != nil {
 		fmt.Println("Error base64 decoding connection string")
 	}
-	session, err := mgo.Dial(string(url))
+	client, err := mongo.Connect(context.Background(), "mongodb://" + string(url), nil)
 	if err != nil {
 		fmt.Println("Error connecting to database")
 	}
-	session.SetMode(mgo.Monotonic, true)
+	database := client.Database("books")
 
-	return &Repository{session: session, databaseName: config.DatabaseName, collectionName: config.CollectionName}
+	return &Repository{database: database, databaseName: config.DatabaseName, collectionName: config.CollectionName}
 }
 
 func (repo Repository) GetBook() (models.Books, error){
-	session := repo.session.Clone()
-	defer session.Close()
+	coll := repo.database.Collection("books")
 	var result []models.Book
 	var results models.Books
-	err := session.DB(repo.databaseName).C(repo.collectionName).Find(bson.M{}).All(&result)
+	cur, err := coll.Find(context.Background(), nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer cur.Close(context.Background())
+	for cur.Next(context.Background()) {
+		var elem models.Book
+		err := cur.Decode(&elem)
+		if err != nil {
+			log.Fatal(err)
+		}
+		result = append(result, elem)
+	}
+	if err := cur.Err(); err != nil {
+		log.Fatal(err)
+	}
 	if err == nil {
 		results.Books = result
 	}
@@ -48,33 +67,43 @@ func (repo Repository) GetBook() (models.Books, error){
 }
 
 func (repo Repository) GetBookById(id string) (*models.Book, error){
-	session := repo.session.Clone()
-	defer session.Close()
-	var result *models.Book
+	coll := repo.database.Collection("books")
+	result := bson.NewDocument()
 	idNum, _ := strconv.Atoi(id)
-	err := session.DB(repo.databaseName).C(repo.collectionName).Find(bson.M{"BookId" : idNum}).One(&result)
-	return result, err
+	filter := bson.NewDocument(bson.EC.Int32("BookId", int32(idNum)))
+	err := coll.FindOne(context.Background(), filter).Decode(result)
+	if err != nil { log.Fatal(err) }
+
+	book := models.Book{result.ElementAt(0).Value().ObjectID().String(), result.ElementAt(1).Value().Int32(),
+		result.ElementAt(2).Value().StringValue(), result.ElementAt(3).Value().StringValue(),
+		result.ElementAt(4).Value().Int32()}
+
+	return &book, err
 }
 
 func (repo Repository) PostBook(book *models.Book) (error){
-	session := repo.session.Clone()
-	defer session.Close()
-	err := session.DB(repo.databaseName).C(repo.collectionName).Insert(book)
+	coll := repo.database.Collection("books")
+	_, err := coll.InsertOne(context.Background(), book)
 	return err
 }
 
 func (repo Repository) PutBook(id string, book *models.Book) (error){
-	session := repo.session.Clone()
-	defer session.Close()
+	coll := repo.database.Collection("books")
 	idNum, _ := strconv.Atoi(id)
-	_, err := session.DB(repo.databaseName).C(repo.collectionName).Upsert(bson.M{"BookId" : idNum}, book)
+	_, err := coll.UpdateOne(context.Background(), bson.NewDocument(bson.EC.Int32("BookId", int32(idNum))), bson.NewDocument(
+		bson.EC.SubDocumentFromElements("$set",
+			bson.EC.Int32("BookId", book.BookId),
+			bson.EC.String("Name", book.Name),
+			bson.EC.String("Author", book.Author),
+			bson.EC.Int32("Year", book.Year),
+		),
+	),)
 	return err
 }
 
 func (repo Repository) DeleteBook(id string) (error){
-	session := repo.session.Clone()
-	defer session.Close()
+	coll := repo.database.Collection("books")
 	idNum, _ := strconv.Atoi(id)
-	err := session.DB(repo.databaseName).C(repo.collectionName).Remove(bson.M{"BookId" : idNum})
+	_, err := coll.DeleteOne(context.Background(), bson.NewDocument(bson.EC.Int32("BookId", int32(idNum))))
 	return err
 }
