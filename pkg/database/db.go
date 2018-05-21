@@ -22,6 +22,7 @@ type DatabaseConfig struct {
 
 type Repository struct{
 	database       *mongo.Database
+	collection     *mongo.Collection
 	databaseName   string
 	collectionName string
 }
@@ -35,16 +36,16 @@ func InitializeMongoDatabase(config *DatabaseConfig) *Repository {
 	if err != nil {
 		fmt.Println("Error connecting to database")
 	}
-	database := client.Database("books")
+	database := client.Database(config.DatabaseName)
+	collection := database.Collection(config.CollectionName)
 
-	return &Repository{database: database, databaseName: config.DatabaseName, collectionName: config.CollectionName}
+	return &Repository{database: database, collection: collection, databaseName: config.DatabaseName, collectionName: config.CollectionName}
 }
 
 func (repo Repository) GetBook() (models.Books, error){
-	coll := repo.database.Collection("books")
 	var result []models.Book
 	var results models.Books
-	cur, err := coll.Find(context.Background(), nil)
+	cur, err := repo.collection.Find(context.Background(), nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -67,11 +68,10 @@ func (repo Repository) GetBook() (models.Books, error){
 }
 
 func (repo Repository) GetBookById(id string) (*models.Book, error){
-	coll := repo.database.Collection("books")
 	result := bson.NewDocument()
 	idNum, _ := strconv.Atoi(id)
 	filter := bson.NewDocument(bson.EC.Int32("BookId", int32(idNum)))
-	err := coll.FindOne(context.Background(), filter).Decode(result)
+	err := repo.collection.FindOne(context.Background(), filter).Decode(result)
 	if err != nil { log.Fatal(err) }
 
 	book := models.Book{result.ElementAt(0).Value().ObjectID().String(), result.ElementAt(1).Value().Int32(),
@@ -82,15 +82,13 @@ func (repo Repository) GetBookById(id string) (*models.Book, error){
 }
 
 func (repo Repository) PostBook(book *models.Book) (error){
-	coll := repo.database.Collection("books")
-	_, err := coll.InsertOne(context.Background(), book)
+	_, err := repo.collection.InsertOne(context.Background(), book)
 	return err
 }
 
 func (repo Repository) PutBook(id string, book *models.Book) (error){
-	coll := repo.database.Collection("books")
 	idNum, _ := strconv.Atoi(id)
-	_, err := coll.UpdateOne(context.Background(), bson.NewDocument(bson.EC.Int32("BookId", int32(idNum))), bson.NewDocument(
+	_, err := repo.collection.UpdateOne(context.Background(), bson.NewDocument(bson.EC.Int32("BookId", int32(idNum))), bson.NewDocument(
 		bson.EC.SubDocumentFromElements("$set",
 			bson.EC.Int32("BookId", book.BookId),
 			bson.EC.String("Name", book.Name),
@@ -102,8 +100,7 @@ func (repo Repository) PutBook(id string, book *models.Book) (error){
 }
 
 func (repo Repository) DeleteBook(id string) (error){
-	coll := repo.database.Collection("books")
 	idNum, _ := strconv.Atoi(id)
-	_, err := coll.DeleteOne(context.Background(), bson.NewDocument(bson.EC.Int32("BookId", int32(idNum))))
+	_, err := repo.collection.DeleteOne(context.Background(), bson.NewDocument(bson.EC.Int32("BookId", int32(idNum))))
 	return err
 }
