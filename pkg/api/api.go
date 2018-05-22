@@ -7,6 +7,7 @@ import (
 	"BookAPI/pkg/database"
 	"github.com/gorilla/mux"
 	"fmt"
+	"strconv"
 )
 
 func HealthCheck(w http.ResponseWriter, r *http.Request){
@@ -20,7 +21,12 @@ func NotFoundPage(w http.ResponseWriter, r *http.Request){
 
 func Get(repo *database.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request){
-		output, err := repo.GetBook()
+		author := r.URL.Query().Get("author")
+		year := r.URL.Query().Get("year")
+		numYear64, _ := strconv.ParseInt(year, 10, 32)
+		numYear := int32(numYear64)
+
+		output, err := repo.GetBook(author, numYear)
 		if err != nil && output.Books == nil {
 			http.Error(w, "not found", 404)
 			return

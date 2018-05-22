@@ -42,10 +42,28 @@ func InitializeMongoDatabase(config *DatabaseConfig) *Repository {
 	return &Repository{database: database, collection: collection, databaseName: config.DatabaseName, collectionName: config.CollectionName}
 }
 
-func (repo Repository) GetBook() (models.Books, error){
+func (repo Repository) GetBook(author string, year int32) (models.Books, error){
 	var result []models.Book
 	var results models.Books
-	cur, err := repo.collection.Find(context.Background(), nil)
+	conditions := bson.NewDocument()
+	var query []*bson.Element
+
+	if author != ""{
+		query = append(query, bson.EC.String("Author", author))
+	}
+	if year != 0{
+		query = append(query, bson.EC.Int32("Year", year))
+	}
+
+	if len(query) != 0{
+		if len(query) == 1{
+			conditions = bson.NewDocument(query[0])
+		} else if len(query) == 2{
+			conditions = bson.NewDocument(query[0], query[1])
+		}
+	}
+
+	cur, err := repo.collection.Find(context.Background(), conditions)
 	if err != nil {
 		log.Fatal(err)
 	}
