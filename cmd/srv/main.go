@@ -1,27 +1,32 @@
 package main
 
 import (
-	"BookAPI/pkg/routes"
 	"BookAPI/pkg/configuration"
 	"BookAPI/pkg/database"
+	"BookAPI/pkg/routes"
+	"fmt"
 	"github.com/rs/cors"
 	"net/http"
 )
 
 func main(){
-	configs := configuration.New("cmd/srv/config.json")
+	configs, err := configuration.New("cmd/srv/config.json")
+	if err != nil {
+		fmt.Println("Error opening properties file: ", err)
+	}
 
-	db := database.InitializeMongoDatabase(&database.DatabaseConfig{
+	db, err := database.InitializeMongoDatabase(&database.DatabaseConfig{
 		DbURL: configs.DbURL,
 		DatabaseName: configs.DatabaseName,
-		CollectionName: configs.CollectionName,
-		})
+		CollectionName: configs.CollectionName})
+	if err != nil {
+		fmt.Println("Error connecting to database: ", err)
+	}
 
 	r := routes.New()
 	r.CreateRoutes(db)
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"},
-		AllowCredentials: true,
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
 	})
 	handler := cors.Default().Handler(r)

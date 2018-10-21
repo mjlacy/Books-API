@@ -1,11 +1,10 @@
 package database
 
 import (
-	"gopkg.in/mgo.v2"
+	"bookAPI"
 	"encoding/base64"
-	"fmt"
+	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"BookAPI/pkg/models"
 	"strconv"
 )
 
@@ -21,25 +20,32 @@ type Repository struct{
 	collectionName string
 }
 
-func InitializeMongoDatabase(config *DatabaseConfig) *Repository {
+func InitializeMongoDatabase(config *DatabaseConfig) (r *Repository, err error) {
 	url, err := base64.StdEncoding.DecodeString(config.DbURL)
 	if err != nil {
-		fmt.Println("Error base64 decoding connection string")
+		return
 	}
 	session, err := mgo.Dial(string(url))
 	if err != nil {
-		fmt.Println("Error connecting to database")
+		return
 	}
 	session.SetMode(mgo.Monotonic, true)
 
-	return &Repository{session: session, databaseName: config.DatabaseName, collectionName: config.CollectionName}
+	r = &Repository{session: session, databaseName: config.DatabaseName, collectionName: config.CollectionName}
+	return
 }
 
-func (repo Repository) GetBook() (models.Books, error){
+func (repo *Repository) Ping() error{
+	re := repo.session.Clone()
+	defer re.Close()
+	return re.Ping()
+}
+
+func (repo Repository) GetBooks() (bookAPI.Books, error){
 	session := repo.session.Clone()
 	defer session.Close()
-	var result []models.Book
-	var results models.Books
+	var result []bookAPI.Book
+	var results bookAPI.Books
 	err := session.DB(repo.databaseName).C(repo.collectionName).Find(bson.M{}).All(&result)
 	if err == nil {
 		results.Books = result
@@ -47,34 +53,33 @@ func (repo Repository) GetBook() (models.Books, error){
 	return results, err
 }
 
-func (repo Repository) GetBookById(id string) (*models.Book, error){
-	session := repo.session.Clone()
-	defer session.Close()
-	var result *models.Book
-	idNum, _ := strconv.Atoi(id)
-	err := session.DB(repo.databaseName).C(repo.collectionName).Find(bson.M{"BookId" : idNum}).One(&result)
-	return result, err
-}
-
-func (repo Repository) PostBook(book *models.Book) (error){
-	session := repo.session.Clone()
-	defer session.Close()
-	err := session.DB(repo.databaseName).C(repo.collectionName).Insert(book)
-	return err
-}
-
-func (repo Repository) PutBook(id string, book *models.Book) (error){
+func (repo Repository) GetBookByBookId(id string) (b *bookAPI.Book, err error){
 	session := repo.session.Clone()
 	defer session.Close()
 	idNum, _ := strconv.Atoi(id)
-	_, err := session.DB(repo.databaseName).C(repo.collectionName).Upsert(bson.M{"BookId" : idNum}, book)
-	return err
+	err = session.DB(repo.databaseName).C(repo.collectionName).Find(bson.M{"bookId" : idNum}).One(&b)
+	return
 }
 
-func (repo Repository) DeleteBook(id string) (error){
+func (repo Repository) PostBook(book *bookAPI.Book) (err error){
+	session := repo.session.Clone()
+	defer session.Close()
+	err = session.DB(repo.databaseName).C(repo.collectionName).Insert(book)
+	return
+}
+
+func (repo Repository) PutBook(id string, book *bookAPI.Book) (err error){
 	session := repo.session.Clone()
 	defer session.Close()
 	idNum, _ := strconv.Atoi(id)
-	err := session.DB(repo.databaseName).C(repo.collectionName).Remove(bson.M{"BookId" : idNum})
-	return err
+	_, err = session.DB(repo.databaseName).C(repo.collectionName).Upsert(bson.M{"bookId" : idNum}, book)
+	return
+}
+
+func (repo Repository) DeleteBook(id string) (err error){
+	session := repo.session.Clone()
+	defer session.Close()
+	idNum, _ := strconv.Atoi(id)
+	err = session.DB(repo.databaseName).C(repo.collectionName).Remove(bson.M{"bookId" : idNum})
+	return
 }

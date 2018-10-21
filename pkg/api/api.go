@@ -1,17 +1,26 @@
 package api
 
 import (
-	"net/http"
-	"encoding/json"
-	"BookAPI/pkg/models"
 	"BookAPI/pkg/database"
+	"bookAPI"
+	"encoding/json"
+	"fmt"
 	"github.com/gorilla/mux"
+	"net/http"
 	"strconv"
 )
 
-func HealthCheck(w http.ResponseWriter, r *http.Request){
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("ok"))
+func HealthCheck(repo *database.Repository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request){
+		err := repo.Ping()
+		if err != nil {
+			fmt.Println("Error connecting to database: ", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Error connecting to the database"))
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	}
 }
 
 func NotFoundPage(w http.ResponseWriter, r *http.Request){
@@ -20,13 +29,22 @@ func NotFoundPage(w http.ResponseWriter, r *http.Request){
 
 func Get(repo *database.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request){
-		output, err := repo.GetBook()
-		if err != nil && output.Books == nil {
-			http.Error(w, "not found", 404)
+		output, err := repo.GetBooks()
+		if err != nil {
+			fmt.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("An error occurred processing this request"))
+			return
+		}
+
+		if output.Books == nil {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("No books found"))
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(200)
 		json.NewEncoder(w).Encode(output)
 	}
 }
@@ -35,27 +53,36 @@ func GetById(repo *database.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request){
 		id := mux.Vars(r)["id"]
 
-		output, err := repo.GetBookById(id)
-		if err != nil && output == nil {
-			http.Error(w, "not found", 404)
+		output, err := repo.GetBookByBookId(id)
+		if err != nil {
+			fmt.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("An error occurred processing this request"))
+			return
+		}
+
+		if output == nil {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("No book found with that id"))
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(200)
 		json.NewEncoder(w).Encode(output)
 	}
 }
 
 func Post(repo *database.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request){
-		var u = models.Book{}
+		var u = bookAPI.Book{}
 		err := json.NewDecoder(r.Body).Decode(&u)
 		if err != nil{
 			http.Error(w, err.Error(), 400)
 			return
 		}
 
-		test, err := repo.GetBookById(strconv.Itoa(int(u.BookId))) //check if a book exists with the given id in JSON body
+		test, err := repo.GetBookByBookId(strconv.Itoa(int(u.BookId))) //check if a book exists with the given id in JSON body
 
 		if err != nil && err.Error() != "not found" {
 			http.Error(w, "Error checking database for existing record.", 500)
@@ -86,7 +113,7 @@ func Put(repo *database.Repository) http.HandlerFunc {
 			return
 		}
 
-		var u = models.Book{}
+		var u = bookAPI.Book{}
 		err := json.NewDecoder(r.Body).Decode(&u)
 
 		if err != nil {
@@ -97,7 +124,7 @@ func Put(repo *database.Repository) http.HandlerFunc {
 		idNum, _ := strconv.ParseInt(id, 10, 32) //convert URL id string to int32
 		result := int32(idNum)
 
-		test, err := repo.GetBookById(strconv.Itoa(int(u.BookId))) //check if a book exists with the given id in JSON body
+		test, err := repo.GetBookByBookId(strconv.Itoa(int(u.BookId))) //check if a book exists with the given id in JSON body
 
 		if err != nil && err.Error() != "not found" {
 			http.Error(w, "Error checking database for existing record.", 500)
@@ -129,7 +156,7 @@ func Delete(repo *database.Repository) http.HandlerFunc {
 			return
 		} else{
 			repo.DeleteBook(id)
-			//w.Write([]byte("Deleted: " + id))
+			w.Write([]byte("Deleted: " + id))
 		}
 	}
 }
