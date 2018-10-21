@@ -1,9 +1,9 @@
 package routes
 
 import (
-	"github.com/gorilla/mux"
 	"BookAPI/pkg/api"
 	"BookAPI/pkg/database"
+	"github.com/gorilla/mux"
 	"net/http"
 )
 
@@ -17,7 +17,7 @@ func New() *Router{
 	}
 }
 func (r *Router)CreateRoutes(db *database.Repository){
-	r.HandleFunc("/health", api.HealthCheck).Methods("GET")
+	r.HandleFunc("/health", api.HealthCheck(db)).Methods("GET")
 
 	r.HandleFunc("/", api.Get(db)).Methods("GET")
 
