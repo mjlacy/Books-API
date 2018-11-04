@@ -3,6 +3,7 @@ package database
 import (
 	"bookAPI"
 	"encoding/base64"
+	"errors"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -40,13 +41,38 @@ func (repo *Repository) Ping() error{
 	return re.Ping()
 }
 
-func (repo Repository) GetBooks() (b bookAPI.Books, err error){
+func (repo Repository) GetBooks(s bookAPI.Book) (b bookAPI.Books, err error){
 	session := repo.session.Clone()
 	defer session.Close()
-	var result []bookAPI.Book
-	err = session.DB(repo.databaseName).C(repo.collectionName).Find(bson.M{}).All(&result)
+
+	conditions := []bson.M{}
+	query := bson.M{}
+
+	var results []bookAPI.Book
+
+	if s.BookId != 0{
+		conditions = append(conditions, bson.M{"bookId": s.BookId})
+	}
+
+	if s.Title != ""{
+		conditions = append(conditions, bson.M{"title": s.Title})
+	}
+
+	if s.Author != ""{
+		conditions = append(conditions, bson.M{"author": s.Author})
+	}
+
+	if s.Year != 0{
+		conditions = append(conditions, bson.M{"year": s.Year})
+	}
+
+	if len(conditions) != 0 {
+		query = bson.M{"$and": conditions}
+	}
+
+	err = session.DB(repo.databaseName).C(repo.collectionName).Find(query).All(&results)
 	if err == nil {
-		b.Books = result
+		b.Books = results
 	}
 	return
 }
@@ -92,9 +118,19 @@ func (repo Repository) PutBook(id string, book *bookAPI.Book) (updateId string, 
 	return
 }
 
-func (repo Repository) DeleteBook(_id string) (err error){
+func (repo Repository) DeleteBook(id string) (err error){
 	session := repo.session.Clone()
 	defer session.Close()
-	err = session.DB(repo.databaseName).C(repo.collectionName).RemoveId(bson.ObjectIdHex(_id))
+
+	book, err := repo.GetBookById(id)
+	if err != nil {
+		return
+	}
+
+	if book == nil {
+		return errors.New("not found")
+	}
+
+	err = session.DB(repo.databaseName).C(repo.collectionName).RemoveId(bson.ObjectIdHex(id))
 	return
 }
