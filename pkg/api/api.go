@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
+	"net/url"
 	"strconv"
 )
 
@@ -97,6 +98,7 @@ func GetById(repo bookAPI.Repository) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
+		w.Header().Add("Location", "/"+ url.PathEscape(id))
 		w.WriteHeader(200)
 		json.NewEncoder(w).Encode(output)
 	}
@@ -119,8 +121,10 @@ func Post(repo bookAPI.Repository) http.HandlerFunc {
 			return
 		}
 
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Add("Location", "/"+url.PathEscape(id))
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte("link: /" + id))
+		json.NewEncoder(w).Encode(u)
 	}
 }
 
@@ -142,13 +146,16 @@ func Put(repo bookAPI.Repository) http.HandlerFunc {
 			return
 		}
 
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Add("Location", "/"+url.PathEscape(id))
+
 		if update != "" {
 			w.WriteHeader(http.StatusCreated)
-			w.Write([]byte("link: /" + update))
 		} else {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("link: /" + id))
 		}
+
+		json.NewEncoder(w).Encode(u)
 	}
 }
 
@@ -158,7 +165,6 @@ func Delete(repo bookAPI.Repository) http.HandlerFunc {
 
 		err := repo.DeleteBook(id)
 		if err != nil {
-			fmt.Println(err)
 			if err.Error() == "not found" {
 				http.Error(w, "not found", 404)
 			} else {

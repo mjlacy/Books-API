@@ -155,6 +155,9 @@ func TestGetBookByIdSuccess(t *testing.T){
 	if rr.Code != http.StatusOK{
 		t.Errorf("Expected 200 but got %v", rr.Code)
 	}
+	if rr.Header()["Location"] == nil {
+		t.Error("No Location header found")
+	}
 }
 
 func TestGetBookByIdError(t *testing.T){
@@ -216,6 +219,9 @@ func TestCreateBookSuccess(t *testing.T){
 
 	if rr.Code != http.StatusCreated{
 		t.Errorf("Expected 201 but got %v", rr.Code)
+	}
+	if rr.Header()["Location"] == nil {
+		t.Error("No Location header found")
 	}
 }
 
@@ -287,6 +293,9 @@ func TestUpdateBookUpdateSuccess(t *testing.T){
 	if rr.Code != http.StatusCreated{
 		t.Errorf("Expected 201 but got %v", rr.Code)
 	}
+	if rr.Header()["Location"] == nil {
+		t.Error("No Location header found")
+	}
 }
 
 func TestUpdateBookCreateSuccess(t *testing.T){
@@ -312,6 +321,9 @@ func TestUpdateBookCreateSuccess(t *testing.T){
 
 	if rr.Code != http.StatusOK{
 		t.Errorf("Expected 200 but got %v", rr.Code)
+	}
+	if rr.Header()["Location"] == nil {
+		t.Error("No Location header found")
 	}
 }
 
@@ -378,7 +390,7 @@ func TestDeleteBookSuccess(t *testing.T) {
 }
 
 func TestDeleteBookNotFound(t *testing.T) {
-	r := mockRepository{err: errors.New("book not found")}
+	r := mockRepository{err: errors.New("not found")}
 
 	req, err := http.NewRequest("DELETE", "/5a80868574fdd6de0f4fa438", nil)
 	if err != nil{
