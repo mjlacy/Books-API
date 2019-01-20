@@ -27,10 +27,10 @@ func main(){
 	r.CreateRoutes(db)
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"},
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE"},
 	})
 	handler := cors.Default().Handler(r)
-	handler = c.Handler(handler);
+	handler = c.Handler(handler)
 
 	http.ListenAndServe(configs.ThisPortNumber, handler)
 }

@@ -98,7 +98,7 @@ func GetById(repo bookAPI.Repository) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		w.Header().Add("Location", "/"+ url.PathEscape(id))
+		w.Header().Add("Location", "/" + url.PathEscape(id))
 		w.WriteHeader(200)
 		json.NewEncoder(w).Encode(output)
 	}
@@ -122,7 +122,7 @@ func Post(repo bookAPI.Repository) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		w.Header().Add("Location", "/"+url.PathEscape(id))
+		w.Header().Add("Location", "/" + url.PathEscape(id))
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(u)
 	}
@@ -142,12 +142,16 @@ func Put(repo bookAPI.Repository) http.HandlerFunc {
 		update, err := repo.PutBook(id, &u)
 		if err != nil {
 			fmt.Println(err)
+			if err.Error() == "Invalid id given" {
+				http.Error(w, err.Error(), 400)
+				return
+			}
 			http.Error(w, err.Error(), 500)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		w.Header().Add("Location", "/"+url.PathEscape(id))
+		w.Header().Add("Location", "/" + url.PathEscape(id))
 
 		if update != "" {
 			w.WriteHeader(http.StatusCreated)
@@ -156,6 +160,38 @@ func Put(repo bookAPI.Repository) http.HandlerFunc {
 		}
 
 		json.NewEncoder(w).Encode(u)
+	}
+}
+
+func Patch(repo bookAPI.Repository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := mux.Vars(r)["id"]
+
+		var update map[string]interface{}
+		err := json.NewDecoder(r.Body).Decode(&update)
+		if err != nil {
+			fmt.Println(err)
+			http.Error(w, err.Error(), 400)
+			return
+		}
+
+		err = repo.PatchBook(id, update)
+		if err != nil {
+			fmt.Println(err)
+			if err.Error() == "not found" {
+				http.Error(w, "No book with that _id found to update", 404)
+				return
+			} else if err.Error() == "Invalid id given" {
+				http.Error(w, err.Error(), 400)
+				return
+			}
+			http.Error(w, "An error occurred processing your request", 500)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Add("Location", "/" + url.PathEscape(id))
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
@@ -172,7 +208,6 @@ func Delete(repo bookAPI.Repository) http.HandlerFunc {
 			}
 			return
 		} else {
-			repo.DeleteBook(id)
 			w.Write([]byte("Deleted: " + id))
 		}
 	}

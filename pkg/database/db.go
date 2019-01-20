@@ -103,6 +103,7 @@ func (repo Repository) PostBook(book *bookAPI.Book) (id string, err error){
 
 func (repo Repository) PutBook(id string, book *bookAPI.Book) (updateId string, err error){
 	if !bson.IsObjectIdHex(id){
+		err = errors.New("Invalid id given")
 		return
 	}
 
@@ -118,19 +119,31 @@ func (repo Repository) PutBook(id string, book *bookAPI.Book) (updateId string, 
 	return
 }
 
+func (repo Repository) PatchBook(id string, update map[string]interface{}) (err error){
+	var oid bson.ObjectId
+	if bson.IsObjectIdHex(id){
+		oid = bson.ObjectIdHex(id)
+	} else {
+		err = errors.New("Invalid id given")
+		return
+	}
+	session := repo.session.Clone()
+	defer session.Close()
+
+	for k, v := range update { //converts incoming float64's to int's
+		if v, ok := v.(float64); ok {
+			update[k] = int(v)
+		}
+	}
+
+	err = session.DB(repo.databaseName).C(repo.collectionName).UpdateId(oid, bson.M{"$set": update}) //Will error if not found
+	return
+}
+
 func (repo Repository) DeleteBook(id string) (err error){
 	session := repo.session.Clone()
 	defer session.Close()
 
-	book, err := repo.GetBookById(id)
-	if err != nil {
-		return
-	}
-
-	if book == nil {
-		return errors.New("not found")
-	}
-
-	err = session.DB(repo.databaseName).C(repo.collectionName).RemoveId(bson.ObjectIdHex(id))
+	err = session.DB(repo.databaseName).C(repo.collectionName).RemoveId(bson.ObjectIdHex(id)) //Will error if not found
 	return
 }

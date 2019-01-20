@@ -13,6 +13,8 @@ Queries the book collection in a mongo database
 
 - PUT /{id}
 
+- PATCH /{id}
+
 - DELETE /{id}
 
 ### Example Calls
@@ -22,9 +24,10 @@ Queries the book collection in a mongo database
 - GET localhost:8080/5a80868574fdd6de0f4fa438
 
 - POST localhost:8080/
-    - Body (3 Fields):
+    - Body (4 Fields):
     ```
     {
+        "BookId": 1,
         "Name" : "War and Peace",
         "Author" : "Leo Tolstoy",
         "Year" : 1869
@@ -32,12 +35,21 @@ Queries the book collection in a mongo database
     ```
 
 - PUT localhost:8080/5a80868574fdd6de0f4fa439
-    - Body (3 Fields):
+    - Body (4 Fields):
     ```
     {
+        "BookId": 1,
         "Name" : "War and Peace",
         "Author" : "Leo Tolstoy",
         "Year" : 1870
+    }
+    ```
+    
+- PATCH localhost:8080/5a80868574fdd6de0f4fa439
+    - Body (1-4 Fields):
+    ```
+    {
+        "BookId": 2
     }
     ```
 

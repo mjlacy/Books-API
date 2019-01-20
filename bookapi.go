@@ -19,5 +19,6 @@ type Repository interface {
 	GetBookById(id string) (b *Book, err error)
 	PostBook(book *Book) (id string, err error)
 	PutBook(id string, book *Book) (updateId string, err error)
+	PatchBook(id string, update map[string]interface{}) (err error)
 	DeleteBook(id string) (err error)
 }
