@@ -1,6 +1,6 @@
 package bookAPI
 
-import "gopkg.in/mgo.v2/bson"
+import "github.com/globalsign/mgo/bson"
 
 type Book struct {
 	Id                   bson.ObjectId `json:"_id" bson:"_id,omitempty"`
@@ -19,6 +19,6 @@ type Repository interface {
 	GetBookById(id string) (b *Book, err error)
 	PostBook(book *Book) (id string, err error)
 	PutBook(id string, book *Book) (updateId string, err error)
-	PatchBook(id string, update map[string]interface{}) (err error)
+	PatchBook(id string, update bson.M) (err error)
 	DeleteBook(id string) (err error)
 }

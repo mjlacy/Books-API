@@ -5,8 +5,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"github.com/globalsign/mgo/bson"
 	"github.com/gorilla/mux"
-	"gopkg.in/mgo.v2/bson"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -49,7 +49,7 @@ func (r mockRepository) PutBook(id string, book *bookAPI.Book) (updateId string,
 	return
 }
 
-func (r mockRepository) PatchBook(id string, update map[string]interface{}) (err error){
+func (r mockRepository) PatchBook(id string, update bson.M) (err error){
 	if len(r.b.Books) != 0 {
 		if r.b.Books[0].Id != bson.ObjectIdHex(id) {
 			err = errors.New("not found")

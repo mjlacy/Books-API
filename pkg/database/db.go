@@ -4,8 +4,8 @@ import (
 	"bookAPI"
 	"encoding/base64"
 	"errors"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 )
 
 type DatabaseConfig struct {
@@ -119,7 +119,7 @@ func (repo Repository) PutBook(id string, book *bookAPI.Book) (updateId string, 
 	return
 }
 
-func (repo Repository) PatchBook(id string, update map[string]interface{}) (err error){
+func (repo Repository) PatchBook(id string, update bson.M) (err error){ //update could also be type bson.M
 	var oid bson.ObjectId
 	if bson.IsObjectIdHex(id){
 		oid = bson.ObjectIdHex(id)
