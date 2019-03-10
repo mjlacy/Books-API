@@ -167,7 +167,12 @@ func Patch(repo bookAPI.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := mux.Vars(r)["id"]
 
+		//decoder := json.NewDecoder(r.Body)
+		//decoder.UseNumber() // will convert to int64 or double
+
 		var update map[string]interface{}
+
+		// err := decoder.Decode(&update)
 		err := json.NewDecoder(r.Body).Decode(&update)
 		if err != nil {
 			fmt.Println(err)
@@ -206,9 +211,6 @@ func Delete(repo bookAPI.Repository) http.HandlerFunc {
 			} else {
 				http.Error(w, "An error occurred processing your request", 500)
 			}
-			return
-		} else {
-			w.Write([]byte("Deleted: " + id))
 		}
 	}
 }

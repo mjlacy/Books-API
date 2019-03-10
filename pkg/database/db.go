@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	"math"
 )
 
 type DatabaseConfig struct {
@@ -119,7 +120,7 @@ func (repo Repository) PutBook(id string, book *bookAPI.Book) (updateId string, 
 	return
 }
 
-func (repo Repository) PatchBook(id string, update bson.M) (err error){ //update could also be type bson.M
+func (repo Repository) PatchBook(id string, update bson.M) (err error){
 	var oid bson.ObjectId
 	if bson.IsObjectIdHex(id){
 		oid = bson.ObjectIdHex(id)
@@ -132,7 +133,10 @@ func (repo Repository) PatchBook(id string, update bson.M) (err error){ //update
 
 	for k, v := range update { //converts incoming float64's to int's
 		if v, ok := v.(float64); ok {
-			update[k] = int(v)
+			_, decimal := math.Modf(v)
+			if decimal == 0 {
+				update[k] = int(v)
+			}
 		}
 	}
 
