@@ -11,7 +11,7 @@ import (
 	"strconv"
 )
 
-func HealthCheck(repo *database.Repository) http.HandlerFunc {
+func HealthCheck(repo *database.Repository) http.HandlerFunc { //TODO Fix health check
 	return func(w http.ResponseWriter, r *http.Request){
 		//err := repo.Ping()
 		//if err != nil {
@@ -68,8 +68,7 @@ func Get(repo bookAPI.Repository) http.HandlerFunc {
 			return
 		}
 
-		//if output.Books == nil {
-		if len(output) == 0 {
+		if len(output.Books) == 0 {
 			w.WriteHeader(http.StatusNotFound)
 			json.NewEncoder(w).Encode("No books found")
 			return
@@ -140,10 +139,11 @@ func Put(repo bookAPI.Repository) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		update, err := repo.PutBook(id, &u)
+
+		updated, updatedBook, err := repo.PutBook(id, &u)
 		if err != nil {
 			fmt.Println(err)
-			if err.Error() == "Invalid id given" {
+			if err.Error() == "invalid id given" {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
@@ -154,17 +154,17 @@ func Put(repo bookAPI.Repository) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Add("Location", "/" + url.PathEscape(id))
 
-		if update != "" {
-			w.WriteHeader(http.StatusCreated)
-		} else {
+		if updated {
 			w.WriteHeader(http.StatusOK)
+		} else {
+			w.WriteHeader(http.StatusCreated)
 		}
 
-		json.NewEncoder(w).Encode(u)
+		json.NewEncoder(w).Encode(updatedBook)
 	}
 }
 
-//func Patch(repo bookAPI.Repository) http.HandlerFunc {
+//func Patch(repo bookAPI.Repository) http.HandlerFunc { //TODO Fix PATCH
 //	return func(w http.ResponseWriter, r *http.Request) {
 //		id := mux.Vars(r)["id"]
 //
@@ -207,8 +207,9 @@ func Delete(repo bookAPI.Repository) http.HandlerFunc {
 
 		err := repo.DeleteBook(id)
 		if err != nil {
-			if err.Error() == "not found" {
-				http.Error(w, "not found", http.StatusNotFound)
+			if err.Error() == "invalid id given" {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
 			} else {
 				http.Error(w, "An error occurred processing your request", http.StatusInternalServerError)
 			}
