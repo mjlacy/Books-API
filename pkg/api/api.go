@@ -5,139 +5,121 @@ import (
 	"bookAPI"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"net/url"
 	"strconv"
 )
 
-func HealthCheck(repo *database.Repository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request){
+func HealthCheck(repo *database.Repository) gin.HandlerFunc {
+	return func(c *gin.Context){
 		err := repo.Ping()
 		if err != nil {
 			fmt.Println("Error connecting to database: ", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("Error connecting to the database"))
+			c.String(http.StatusInternalServerError, "Error connecting to the database")
 			return
 		}
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
+		c.String(http.StatusOK, "ok")
 	}
 }
 
-func NotFoundPage(w http.ResponseWriter, r *http.Request){
-	http.Error(w, "You have accessed an invalid URL", http.StatusNotFound)
-}
-
-func Get(repo bookAPI.Repository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request){
+func Get(repo bookAPI.Repository) gin.HandlerFunc {
+	return func(c *gin.Context){
 		var bookId int
 		var year int
 		var err error
-		if bookIdString := r.URL.Query().Get("bookId"); bookIdString != ""{
+		if bookIdString := c.Query("bookId"); bookIdString != ""{
 			bookId, err = strconv.Atoi(bookIdString)
 			if err != nil {
 				fmt.Println(err)
-				w.WriteHeader(http.StatusBadRequest)
-				json.NewEncoder(w).Encode("bookId query must be a nonzero positive integer")
+				c.String(http.StatusBadRequest, "bookId query must be a nonzero positive integer")
 				return
 			}
 		}
 
-		if yearString := r.URL.Query().Get("year"); yearString != ""{
+		if yearString := c.Query("year"); yearString != ""{
 			year, err = strconv.Atoi(yearString)
 			if err != nil {
 				fmt.Println(err)
-				w.WriteHeader(http.StatusBadRequest)
-				json.NewEncoder(w).Encode("year query must be a nonzero positive integer")
+				c.String(http.StatusBadRequest, "year query must be a nonzero positive integer")
 				return
 			}
 		}
 
 		search := bookAPI.Book{
 			BookId: int32(bookId),
-			Title: r.URL.Query().Get("title"),
-			Author: r.URL.Query().Get("author"),
+			Title: c.Query("title"),
+			Author: c.Query("author"),
 			Year: int32(year),
 		}
 
 		output, err := repo.GetBooks(search)
 		if err != nil{
 			fmt.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode("An error occurred processing this request")
+			c.String(http.StatusInternalServerError, "An error occurred processing this request")
 			return
 		}
 
 		if len(output.Books) == 0 {
-			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode("No books found")
+			c.String(http.StatusNotFound, "No books found")
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(output)
+		c.JSON(http.StatusOK, output)
 	}
 }
 
-func GetById(repo bookAPI.Repository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request){
-		id := mux.Vars(r)["id"]
+func GetById(repo bookAPI.Repository) gin.HandlerFunc {
+	return func(c *gin.Context){
+		id := c.Param("id")
 
 		output, err := repo.GetBookById(id)
 		if err != nil {
 			fmt.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode("An error occurred processing this request")
+			c.String(http.StatusInternalServerError, "An error occurred processing this request")
 			return
 		}
 		if output == nil {
-			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode("No book found with that id")
+			c.String(http.StatusNotFound, "No book found with that id")
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Add("Location", "/" + url.PathEscape(id))
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(output)
+		c.Header("Location", "/" + url.PathEscape(id))
+		c.JSON(http.StatusOK, output)
 	}
 }
 
-func Post(repo bookAPI.Repository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request){
+func Post(repo bookAPI.Repository) gin.HandlerFunc {
+	return func(c *gin.Context){
 		var u = bookAPI.Book{}
-		err := json.NewDecoder(r.Body).Decode(&u)
+		err := json.NewDecoder(c.Request.Body).Decode(&u)
 		if err != nil{
 			fmt.Println(err)
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			c.String(http.StatusBadRequest, "An error occurred decoding this book")
 			return
 		}
 
 		id, err := repo.PostBook(&u)
 		if err != nil {
 			fmt.Println(err)
-			http.Error(w, "An error occurred processing your request", http.StatusInternalServerError)
+			c.String(http.StatusInternalServerError, "An error occurred processing this request")
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Add("Location", "/" + url.PathEscape(id))
-		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(u)
+		c.Header("Location", "/" + url.PathEscape(id))
+		c.JSON(http.StatusCreated, u)
 	}
 }
 
-func Put(repo bookAPI.Repository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request){
-		id := mux.Vars(r)["id"]
+func Put(repo bookAPI.Repository) gin.HandlerFunc {
+	return func(c *gin.Context){
+		id := c.Param("id")
 
 		var u = bookAPI.Book{}
-		err := json.NewDecoder(r.Body).Decode(&u)
+		err := json.NewDecoder(c.Request.Body).Decode(&u)
 		if err != nil {
 			fmt.Println(err)
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			c.String(http.StatusBadRequest, "An error occurred decoding this book")
 			return
 		}
 
@@ -145,36 +127,33 @@ func Put(repo bookAPI.Repository) http.HandlerFunc {
 		if err != nil {
 			fmt.Println(err)
 			if err.Error() == "invalid id given" {
-				http.Error(w, err.Error(), http.StatusBadRequest)
+				c.String(http.StatusBadRequest, "Invalid id given")
 				return
 			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			c.String(http.StatusInternalServerError, "An error occurred processing this request")
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Add("Location", "/" + url.PathEscape(id))
+		c.Header("Location", "/" + url.PathEscape(id))
 
 		if updated {
-			w.WriteHeader(http.StatusOK)
+			c.JSON(http.StatusOK, updatedBook)
 		} else {
-			w.WriteHeader(http.StatusCreated)
+			c.JSON(http.StatusCreated, updatedBook)
 		}
-
-		json.NewEncoder(w).Encode(updatedBook)
 	}
 }
 
-func Patch(repo bookAPI.Repository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		id := mux.Vars(r)["id"]
+func Patch(repo bookAPI.Repository) gin.HandlerFunc {
+	return func(c *gin.Context){
+		id := c.Param("id")
 
 		var update map[string]interface{}
 
-		err := json.NewDecoder(r.Body).Decode(&update)
+		err := json.NewDecoder(c.Request.Body).Decode(&update)
 		if err != nil {
 			fmt.Println(err)
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			c.String(http.StatusBadRequest, "An error occurred decoding this update")
 			return
 		}
 
@@ -182,33 +161,32 @@ func Patch(repo bookAPI.Repository) http.HandlerFunc {
 		if err != nil {
 			fmt.Println(err)
 			if err.Error() == "not found" {
-				http.Error(w, "No book with that _id found to update", http.StatusNotFound)
+				c.String(http.StatusNotFound, "No book with that id found to update")
 				return
 			} else if err.Error() == "invalid id given" {
-				http.Error(w, err.Error(), http.StatusBadRequest)
+				c.String(http.StatusBadRequest, "Invalid id given")
 				return
 			}
-			http.Error(w, "An error occurred processing your request", http.StatusInternalServerError)
+			c.String(http.StatusInternalServerError, "An error occurred processing this request")
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Add("Location", "/" + url.PathEscape(id))
-		w.WriteHeader(http.StatusOK)
+		c.Header("Location", "/" + url.PathEscape(id))
+		c.Writer.WriteHeader(http.StatusOK)
 	}
 }
 
-func Delete(repo bookAPI.Repository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request){
-		id := mux.Vars(r)["id"]
+func Delete(repo bookAPI.Repository) gin.HandlerFunc {
+	return func(c *gin.Context){
+		id := c.Param("id")
 
 		err := repo.DeleteBook(id)
 		if err != nil {
 			if err.Error() == "invalid id given" {
-				http.Error(w, err.Error(), http.StatusBadRequest)
+				c.String(http.StatusBadRequest, "Invalid id given")
 				return
 			} else {
-				http.Error(w, "An error occurred processing your request", http.StatusInternalServerError)
+				c.String(http.StatusInternalServerError, "An error occurred processing this request")
 			}
 		}
 	}

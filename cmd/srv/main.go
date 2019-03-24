@@ -23,8 +23,7 @@ func main(){
 		fmt.Println("Error connecting to database: ", err)
 	}
 
-	r := routes.New()
-	r.CreateRoutes(db)
+	r := routes.New(db)
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"},
 		AllowedMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE"},

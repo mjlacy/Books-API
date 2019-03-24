@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
@@ -26,12 +27,7 @@ func (r mockRepository) GetBooks(s bookAPI.Book) (b bookAPI.Books, err error){
 
 func (r mockRepository) GetBookById(id string) (b *bookAPI.Book, err error){
 	if len(r.b.Books) != 0 {
-		mId, _ := primitive.ObjectIDFromHex(id)
-		if r.b.Books[0].Id == mId {
-			b = &r.b.Books[0]
-		} else {
-			b = nil
-		}
+		b = &r.b.Books[0]
 	} else {
 		b = nil
 	}
@@ -45,8 +41,6 @@ func (r mockRepository) PostBook(book *bookAPI.Book) (id string, err error){
 }
 
 func (r mockRepository) PutBook(id string, book *bookAPI.Book) (bool, *bookAPI.Book, error){
-	//updateId = r.id
-	//err := r.err
 	if r.b.Books != nil {
 		return true, &r.b.Books[0], r.err
 	}
@@ -54,12 +48,8 @@ func (r mockRepository) PutBook(id string, book *bookAPI.Book) (bool, *bookAPI.B
 }
 
 func (r mockRepository) PatchBook(id string, update map[string]interface{}) (err error){
-	if len(r.b.Books) != 0 {
-		mId, _ := primitive.ObjectIDFromHex(id)
-		if r.b.Books[0].Id != mId {
-			err = errors.New("not found")
-			return
-		}
+	if len(r.b.Books) == 0 && r.err == nil {
+		return errors.New("not found")
 	}
 	err = r.err
 	return
@@ -79,7 +69,9 @@ func TestGetBooksSuccess(t *testing.T){
 	}
 
 	rr := httptest.NewRecorder()
-	handler := Get(r)
+
+	handler := gin.Default()
+	handler.GET("/", Get(r))
 
 	handler.ServeHTTP(rr, req)
 
@@ -97,7 +89,9 @@ func TestGetBooksBadBookId(t *testing.T){
 	}
 
 	rr := httptest.NewRecorder()
-	handler := Get(r)
+
+	handler := gin.Default()
+	handler.GET("/", Get(r))
 
 	handler.ServeHTTP(rr, req)
 
@@ -115,7 +109,9 @@ func TestGetBooksBadYear(t *testing.T){
 	}
 
 	rr := httptest.NewRecorder()
-	handler := Get(r)
+
+	handler := gin.Default()
+	handler.GET("/", Get(r))
 
 	handler.ServeHTTP(rr, req)
 
@@ -133,7 +129,9 @@ func TestGetBooksError(t *testing.T){
 	}
 
 	rr := httptest.NewRecorder()
-	handler := Get(r)
+
+	handler := gin.Default()
+	handler.GET("/", Get(r))
 
 	handler.ServeHTTP(rr, req)
 
@@ -151,7 +149,9 @@ func TestGetBooksNoBooksFound(t *testing.T){
 	}
 
 	rr := httptest.NewRecorder()
-	handler := Get(r)
+
+	handler := gin.Default()
+	handler.GET("/", Get(r))
 
 	handler.ServeHTTP(rr, req)
 
@@ -161,17 +161,17 @@ func TestGetBooksNoBooksFound(t *testing.T){
 }
 
 func TestGetBookByIdSuccess(t *testing.T){
-	mId, _ := primitive.ObjectIDFromHex("5a80868574fdd6de0f4fa438")
-	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{{Id: mId}}}}
+	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{{}}}}
 
 	req, err := http.NewRequest("GET", "/5a80868574fdd6de0f4fa438", nil)
 	if err != nil{
 		t.Fatal(err)
 	}
-	req = mux.SetURLVars(req, map[string]string{"id": "5a80868574fdd6de0f4fa438"})
 
 	rr := httptest.NewRecorder()
-	handler := GetById(r)
+
+	handler := gin.Default()
+	handler.GET("/5a80868574fdd6de0f4fa438", GetById(r))
 
 	handler.ServeHTTP(rr, req)
 
@@ -190,10 +190,11 @@ func TestGetBookByIdError(t *testing.T){
 	if err != nil{
 		t.Fatal(err)
 	}
-	req = mux.SetURLVars(req, map[string]string{"id": "5a80868574fdd6de0f4fa438"})
 
 	rr := httptest.NewRecorder()
-	handler := GetById(r)
+
+	handler := gin.Default()
+	handler.GET("/5a80868574fdd6de0f4fa438", GetById(r))
 
 	handler.ServeHTTP(rr, req)
 
@@ -213,7 +214,9 @@ func TestGetBookNotFound(t *testing.T){
 	req = mux.SetURLVars(req, map[string]string{"id": "5a80868574fdd6de0f4fa438"})
 
 	rr := httptest.NewRecorder()
-	handler := GetById(r)
+
+	handler := gin.Default()
+	handler.GET("/", GetById(r))
 
 	handler.ServeHTTP(rr, req)
 
@@ -240,7 +243,9 @@ func TestCreateBookSuccess(t *testing.T){
 	}
 
 	rr := httptest.NewRecorder()
-	handler := Post(r)
+
+	handler := gin.Default()
+	handler.POST("/", Post(r))
 
 	handler.ServeHTTP(rr, req)
 
@@ -261,7 +266,9 @@ func TestCreateBookBadInput(t *testing.T){
 	}
 
 	rr := httptest.NewRecorder()
-	handler := Post(r)
+
+	handler := gin.Default()
+	handler.POST("/", Post(r))
 
 	handler.ServeHTTP(rr, req)
 
@@ -288,7 +295,9 @@ func TestCreateBookError(t *testing.T){
 	}
 
 	rr := httptest.NewRecorder()
-	handler := Post(r)
+
+	handler := gin.Default()
+	handler.POST("/", Post(r))
 
 	handler.ServeHTTP(rr, req)
 
@@ -316,7 +325,9 @@ func TestUpsertBookUpdateSuccess(t *testing.T){
 	}
 
 	rr := httptest.NewRecorder()
-	handler := Put(r)
+
+	handler := gin.Default()
+	handler.PUT("/5a80868574fdd6de0f4fa438", Put(r))
 
 	handler.ServeHTTP(rr, req)
 
@@ -344,10 +355,11 @@ func TestUpsertBookCreateSuccess(t *testing.T){
 	if err != nil{
 		t.Fatal(err)
 	}
-	req = mux.SetURLVars(req, map[string]string{"id": "5a80868574fdd6de0f4fa438"})
 
 	rr := httptest.NewRecorder()
-	handler := Put(r)
+
+	handler := gin.Default()
+	handler.PUT("/5a80868574fdd6de0f4fa438", Put(r))
 
 	handler.ServeHTTP(rr, req)
 
@@ -368,7 +380,9 @@ func TestUpsertBookBadInput(t *testing.T){
 	}
 
 	rr := httptest.NewRecorder()
-	handler := Put(r)
+
+	handler := gin.Default()
+	handler.PUT("/", Put(r))
 
 	handler.ServeHTTP(rr, req)
 
@@ -395,7 +409,9 @@ func TestUpsertBookError(t *testing.T){
 	}
 
 	rr := httptest.NewRecorder()
-	handler := Put(r)
+
+	handler := gin.Default()
+	handler.PUT("/", Put(r))
 
 	handler.ServeHTTP(rr, req)
 
@@ -405,8 +421,7 @@ func TestUpsertBookError(t *testing.T){
 }
 
 func TestUpdateBookSuccess(t *testing.T){
-	mId, _ := primitive.ObjectIDFromHex("5a80868574fdd6de0f4fa438")
-	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{{Id: mId}}}}
+	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{{}}}}
 
 	b := make(map[string]interface{})
 	b["bookId"] = 4
@@ -420,10 +435,11 @@ func TestUpdateBookSuccess(t *testing.T){
 	if err != nil{
 		t.Fatal(err)
 	}
-	req = mux.SetURLVars(req, map[string]string{"id": "5a80868574fdd6de0f4fa438"})
 
 	rr := httptest.NewRecorder()
-	handler := Patch(r)
+
+	handler := gin.Default()
+	handler.PATCH("/5a80868574fdd6de0f4fa438", Patch(r))
 
 	handler.ServeHTTP(rr, req)
 
@@ -444,7 +460,9 @@ func TestUpdateBookBadInput(t *testing.T){
 	}
 
 	rr := httptest.NewRecorder()
-	handler := Patch(r)
+
+	handler := gin.Default()
+	handler.PATCH("/", Patch(r))
 
 	handler.ServeHTTP(rr, req)
 
@@ -454,8 +472,7 @@ func TestUpdateBookBadInput(t *testing.T){
 }
 
 func TestUpdateBookNotFound(t *testing.T){
-	mId, _ := primitive.ObjectIDFromHex("5a80868574fdd6de0f4fa437")
-	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{{Id: mId}}}}
+	r := mockRepository{err: errors.New("new found")}
 
 	b := make(map[string]interface{})
 	b["bookId"] = 4
@@ -472,7 +489,9 @@ func TestUpdateBookNotFound(t *testing.T){
 	req = mux.SetURLVars(req, map[string]string{"id": "5a80868574fdd6de0f4fa438"})
 
 	rr := httptest.NewRecorder()
-	handler := Patch(r)
+
+	handler := gin.Default()
+	handler.PATCH("/", Patch(r))
 
 	handler.ServeHTTP(rr, req)
 
@@ -498,7 +517,9 @@ func TestUpdateBookError(t *testing.T){
 	}
 
 	rr := httptest.NewRecorder()
-	handler := Patch(r)
+
+	handler := gin.Default()
+	handler.PATCH("/5a80868574fdd6de0f4fa438", Patch(r))
 
 	handler.ServeHTTP(rr, req)
 
@@ -517,7 +538,9 @@ func TestDeleteBookSuccess(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	handler := Delete(r)
+
+	handler := gin.Default()
+	handler.DELETE("/5a80868574fdd6de0f4fa438", Delete(r))
 
 	handler.ServeHTTP(rr, req)
 
@@ -535,7 +558,9 @@ func TestDeleteBookNotFound(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	handler := Delete(r)
+
+	handler := gin.Default()
+	handler.DELETE("/5a80868574fdd6de0f4fa438", Delete(r))
 
 	handler.ServeHTTP(rr, req)
 
@@ -553,7 +578,9 @@ func TestDeleteBookError(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	handler := Delete(r)
+
+	handler := gin.Default()
+	handler.DELETE("/5a80868574fdd6de0f4fa438", Delete(r))
 
 	handler.ServeHTTP(rr, req)
 

@@ -3,33 +3,27 @@ package routes
 import (
 	"BookAPI/pkg/api"
 	"BookAPI/pkg/database"
-	"github.com/gorilla/mux"
-	"net/http"
+	"github.com/gin-gonic/gin"
 )
 
-type Router struct {
-	*mux.Router
-}
+func New(db *database.Repository) *gin.Engine{
+	router := gin.New()
 
-func New() *Router{
-	return &Router{
-		mux.NewRouter().StrictSlash(true),
-	}
-}
-func (r *Router)CreateRoutes(db *database.Repository){
-	r.HandleFunc("/health", api.HealthCheck(db)).Methods("GET")
+	//router.GET("/health", api.HealthCheck(db))
 
-	r.HandleFunc("/", api.Get(db)).Methods("GET")
+	router.GET("/", api.Get(db))
 
-	r.HandleFunc("/{id}", api.GetById(db)).Methods("GET")
+	router.GET("/:id", api.GetById(db))
 
-	r.HandleFunc("/", api.Post(db)).Methods("POST")
+	router.POST("/", api.Post(db))
 
-	r.HandleFunc("/{id}", api.Put(db)).Methods("PUT")
+	router.PUT("/:id", api.Put(db))
 
-	r.HandleFunc("/{id}", api.Patch(db)).Methods("PATCH")
+	router.PATCH("/:id", api.Patch(db))
 
-	r.HandleFunc("/{id}", api.Delete(db)).Methods("DELETE")
+	router.DELETE("/:id", api.Delete(db))
 
-	r.NotFoundHandler = http.HandlerFunc(api.NotFoundPage)
+	router.NoRoute()
+
+	return router
 }
