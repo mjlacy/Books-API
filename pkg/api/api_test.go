@@ -5,8 +5,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/globalsign/mgo/bson"
 	"github.com/gorilla/mux"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -26,7 +26,8 @@ func (r mockRepository) GetBooks(s bookAPI.Book) (b bookAPI.Books, err error){
 
 func (r mockRepository) GetBookById(id string) (b *bookAPI.Book, err error){
 	if len(r.b.Books) != 0 {
-		if r.b.Books[0].Id == bson.ObjectIdHex(id) {
+		mId, _ := primitive.ObjectIDFromHex(id)
+		if r.b.Books[0].Id == mId {
 			b = &r.b.Books[0]
 		} else {
 			b = nil
@@ -43,15 +44,19 @@ func (r mockRepository) PostBook(book *bookAPI.Book) (id string, err error){
 	return
 }
 
-func (r mockRepository) PutBook(id string, book *bookAPI.Book) (updateId string, err error){
-	updateId = r.id
-	err = r.err
-	return
+func (r mockRepository) PutBook(id string, book *bookAPI.Book) (bool, *bookAPI.Book, error){
+	//updateId = r.id
+	//err := r.err
+	if r.b.Books != nil {
+		return true, &r.b.Books[0], r.err
+	}
+	return false, &bookAPI.Book{}, r.err
 }
 
-func (r mockRepository) PatchBook(id string, update bson.M) (err error){
+func (r mockRepository) PatchBook(id string, update map[string]interface{}) (err error){
 	if len(r.b.Books) != 0 {
-		if r.b.Books[0].Id != bson.ObjectIdHex(id) {
+		mId, _ := primitive.ObjectIDFromHex(id)
+		if r.b.Books[0].Id != mId {
 			err = errors.New("not found")
 			return
 		}
@@ -156,7 +161,8 @@ func TestGetBooksNoBooksFound(t *testing.T){
 }
 
 func TestGetBookByIdSuccess(t *testing.T){
-	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{{Id: bson.ObjectIdHex("5a80868574fdd6de0f4fa438")}}}}
+	mId, _ := primitive.ObjectIDFromHex("5a80868574fdd6de0f4fa438")
+	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{{Id: mId}}}}
 
 	req, err := http.NewRequest("GET", "/5a80868574fdd6de0f4fa438", nil)
 	if err != nil{
@@ -197,7 +203,8 @@ func TestGetBookByIdError(t *testing.T){
 }
 
 func TestGetBookNotFound(t *testing.T){
-	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{{Id: bson.ObjectIdHex("5a80868574fdd6de0f4fa437")}}}}
+	mId, _ := primitive.ObjectIDFromHex("5a80868574fdd6de0f4fa437")
+	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{{Id: mId}}}}
 
 	req, err := http.NewRequest("GET", "/5a80868574fdd6de0f4fa438", nil)
 	if err != nil{
@@ -218,7 +225,8 @@ func TestGetBookNotFound(t *testing.T){
 func TestCreateBookSuccess(t *testing.T){
 	r := mockRepository{}
 
-	b := bookAPI.Book{Id:bson.ObjectIdHex("5a80868574fdd6de0f4fa438"), BookId: 2,
+	mId, _ := primitive.ObjectIDFromHex("5a80868574fdd6de0f4fa438")
+	b := bookAPI.Book{Id:mId, BookId: 2,
 	  Title: "War and Peace", Author: "Leo Tolstoy", Year: 1869}
 
 	s, err := json.Marshal(b)
@@ -265,7 +273,8 @@ func TestCreateBookBadInput(t *testing.T){
 func TestCreateBookError(t *testing.T){
 	r := mockRepository{err: errors.New("test error")}
 
-	b := bookAPI.Book{Id:bson.ObjectIdHex("5a80868574fdd6de0f4fa438"), BookId: 2,
+	mId, _ := primitive.ObjectIDFromHex("5a80868574fdd6de0f4fa438")
+	b := bookAPI.Book{Id:mId, BookId: 2,
 		Title: "War and Peace", Author: "Leo Tolstoy", Year: 1869}
 
 	s, err := json.Marshal(b)
@@ -289,9 +298,11 @@ func TestCreateBookError(t *testing.T){
 }
 
 func TestUpsertBookUpdateSuccess(t *testing.T){
-	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{{Id: bson.ObjectIdHex("5a80868574fdd6de0f4fa438")}}}}
+	mId, _ := primitive.ObjectIDFromHex("5a80868574fdd6de0f4fa438")
 
-	b := bookAPI.Book{Id:bson.ObjectIdHex("5a80868574fdd6de0f4fa438"), BookId: 2,
+	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{{Id: mId}}}}
+
+	b := bookAPI.Book{Id:mId, BookId: 2,
 		Title: "War and Peace", Author: "Leo Tolstoy", Year: 1869}
 
 	s, err := json.Marshal(b)
@@ -320,7 +331,8 @@ func TestUpsertBookUpdateSuccess(t *testing.T){
 func TestUpsertBookCreateSuccess(t *testing.T){
 	r := mockRepository{id:"5a80868574fdd6de0f4fa438"}
 
-	b := bookAPI.Book{Id:bson.ObjectIdHex("5a80868574fdd6de0f4fa438"), BookId: 2,
+	mId, _ := primitive.ObjectIDFromHex("5a80868574fdd6de0f4fa438")
+	b := bookAPI.Book{Id:mId, BookId: 2,
 		Title: "War and Peace", Author: "Leo Tolstoy", Year: 1869}
 
 	s, err := json.Marshal(b)
@@ -368,7 +380,8 @@ func TestUpsertBookBadInput(t *testing.T){
 func TestUpsertBookError(t *testing.T){
 	r := mockRepository{err: errors.New("test error")}
 
-	b := bookAPI.Book{Id:bson.ObjectIdHex("5a80868574fdd6de0f4fa438"), BookId: 2,
+	mId, _ := primitive.ObjectIDFromHex("5a80868574fdd6de0f4fa438")
+	b := bookAPI.Book{Id:mId, BookId: 2,
 		Title: "War and Peace", Author: "Leo Tolstoy", Year: 1869}
 
 	s, err := json.Marshal(b)
@@ -392,7 +405,8 @@ func TestUpsertBookError(t *testing.T){
 }
 
 func TestUpdateBookSuccess(t *testing.T){
-	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{{Id: bson.ObjectIdHex("5a80868574fdd6de0f4fa438")}}}}
+	mId, _ := primitive.ObjectIDFromHex("5a80868574fdd6de0f4fa438")
+	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{{Id: mId}}}}
 
 	b := make(map[string]interface{})
 	b["bookId"] = 4
@@ -440,7 +454,8 @@ func TestUpdateBookBadInput(t *testing.T){
 }
 
 func TestUpdateBookNotFound(t *testing.T){
-	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{{Id: bson.ObjectIdHex("5a80868574fdd6de0f4fa437")}}}}
+	mId, _ := primitive.ObjectIDFromHex("5a80868574fdd6de0f4fa437")
+	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{{Id: mId}}}}
 
 	b := make(map[string]interface{})
 	b["bookId"] = 4
@@ -493,7 +508,8 @@ func TestUpdateBookError(t *testing.T){
 }
 
 func TestDeleteBookSuccess(t *testing.T) {
-	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{{Id: bson.ObjectIdHex("5a80868574fdd6de0f4fa438")}}}}
+	mId, _ := primitive.ObjectIDFromHex("5a80868574fdd6de0f4fa438")
+	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{{Id: mId}}}}
 
 	req, err := http.NewRequest("DELETE", "/5a80868574fdd6de0f4fa438", nil)
 	if err != nil{
@@ -511,7 +527,7 @@ func TestDeleteBookSuccess(t *testing.T) {
 }
 
 func TestDeleteBookNotFound(t *testing.T) {
-	r := mockRepository{err: errors.New("not found")}
+	r := mockRepository{}
 
 	req, err := http.NewRequest("DELETE", "/5a80868574fdd6de0f4fa438", nil)
 	if err != nil{
@@ -523,8 +539,8 @@ func TestDeleteBookNotFound(t *testing.T) {
 
 	handler.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusNotFound{
-		t.Errorf("Expected 404 but got %v", rr.Code)
+	if rr.Code != http.StatusOK{
+		t.Errorf("Expected 200 but got %v", rr.Code)
 	}
 }
 
