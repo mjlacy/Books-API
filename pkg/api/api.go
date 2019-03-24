@@ -11,14 +11,15 @@ import (
 	"strconv"
 )
 
-func HealthCheck(repo *database.Repository) http.HandlerFunc { //TODO Fix health check
+func HealthCheck(repo *database.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request){
-		//err := repo.Ping()
-		//if err != nil {
-		//	fmt.Println("Error connecting to database: ", err)
-		//	w.WriteHeader(http.StatusInternalServerError)
-		//	w.Write([]byte("Error connecting to the database"))
-		//}
+		err := repo.Ping()
+		if err != nil {
+			fmt.Println("Error connecting to database: ", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Error connecting to the database"))
+			return
+		}
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))
 	}
@@ -164,42 +165,38 @@ func Put(repo bookAPI.Repository) http.HandlerFunc {
 	}
 }
 
-//func Patch(repo bookAPI.Repository) http.HandlerFunc { //TODO Fix PATCH
-//	return func(w http.ResponseWriter, r *http.Request) {
-//		id := mux.Vars(r)["id"]
-//
-//		//decoder := json.NewDecoder(r.Body)
-//		//decoder.UseNumber() // will convert to int64 or double
-//
-//		var update map[string]interface{}
-//
-//		// err := decoder.Decode(&update)
-//		err := json.NewDecoder(r.Body).Decode(&update)
-//		if err != nil {
-//			fmt.Println(err)
-//			http.Error(w, err.Error(), 400)
-//			return
-//		}
-//
-//		err = repo.PatchBook(id, update)
-//		if err != nil {
-//			fmt.Println(err)
-//			if err.Error() == "not found" {
-//				http.Error(w, "No book with that _id found to update", 404)
-//				return
-//			} else if err.Error() == "Invalid id given" {
-//				http.Error(w, err.Error(), 400)
-//				return
-//			}
-//			http.Error(w, "An error occurred processing your request", 500)
-//			return
-//		}
-//
-//		w.Header().Set("Content-Type", "application/json")
-//		w.Header().Add("Location", "/" + url.PathEscape(id))
-//		w.WriteHeader(http.StatusOK)
-//	}
-//}
+func Patch(repo bookAPI.Repository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := mux.Vars(r)["id"]
+
+		var update map[string]interface{}
+
+		err := json.NewDecoder(r.Body).Decode(&update)
+		if err != nil {
+			fmt.Println(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		err = repo.PatchBook(id, update)
+		if err != nil {
+			fmt.Println(err)
+			if err.Error() == "not found" {
+				http.Error(w, "No book with that _id found to update", http.StatusNotFound)
+				return
+			} else if err.Error() == "invalid id given" {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			http.Error(w, "An error occurred processing your request", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Add("Location", "/" + url.PathEscape(id))
+		w.WriteHeader(http.StatusOK)
+	}
+}
 
 func Delete(repo bookAPI.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request){

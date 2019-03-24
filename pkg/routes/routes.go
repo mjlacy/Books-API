@@ -27,7 +27,7 @@ func (r *Router)CreateRoutes(db *database.Repository){
 
 	r.HandleFunc("/{id}", api.Put(db)).Methods("PUT")
 
-	//r.HandleFunc("/{id}", api.Patch(db)).Methods("PATCH")
+	r.HandleFunc("/{id}", api.Patch(db)).Methods("PATCH")
 
 	r.HandleFunc("/{id}", api.Delete(db)).Methods("DELETE")
 

@@ -9,6 +9,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"math"
+	"time"
 )
 
 type DatabaseConfig struct {
@@ -18,10 +21,8 @@ type DatabaseConfig struct {
 }
 
 type Repository struct{
-	database       *mongo.Database
+	client         *mongo.Client
 	collection     *mongo.Collection
-	databaseName   string
-	collectionName string
 }
 
 func InitializeMongoDatabase(config *DatabaseConfig) (r *Repository, err error) {
@@ -36,15 +37,14 @@ func InitializeMongoDatabase(config *DatabaseConfig) (r *Repository, err error) 
 	}
 	database := client.Database(config.DatabaseName)
 
-	r = &Repository{database: database, collection: database.Collection(config.CollectionName), databaseName: config.DatabaseName, collectionName: config.CollectionName}
+	r = &Repository{client: client, collection: database.Collection(config.CollectionName)}
 	return
 }
 
-//func (repo *Repository) Ping() error{
-//	re := repo.session.Clone()
-//	defer re.Close()
-//	return re.Ping()
-//}
+func (repo *Repository) Ping() error{
+	ctx, _ := context.WithTimeout(context.Background(), 2 * time.Second)
+	return repo.client.Ping(ctx, readpref.Primary())
+}
 
 func (repo Repository) GetBooks(s bookAPI.Book) (books bookAPI.Books, err error){
 	var originals []bookAPI.Book
@@ -135,29 +135,28 @@ func (repo Repository) PutBook(id string, book *bookAPI.Book) (bool, *bookAPI.Bo
 	return result.ModifiedCount > 0, book, err
 }
 
-//func (repo Repository) PatchBook(id string, update bson.M) (err error){
-//	var oid bson.ObjectId
-//	if bson.IsObjectIdHex(id){
-//		oid = bson.ObjectIdHex(id)
-//	} else {
-//		err = errors.New("Invalid id given")
-//		return
-//	}
-//	session := repo.session.Clone()
-//	defer session.Close()
-//
-//	for k, v := range update { //converts incoming float64's to int's
-//		if v, ok := v.(float64); ok {
-//			_, decimal := math.Modf(v)
-//			if decimal == 0 {
-//				update[k] = int(v)
-//			}
-//		}
-//	}
-//
-//	err = session.DB(repo.databaseName).C(repo.collectionName).UpdateId(oid, bson.M{"$set": update}) //Will error if not found
-//	return
-//}
+func (repo Repository) PatchBook(id string, update map[string]interface{}) (err error){
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil{
+		err = errors.New("invalid id given")
+		return err
+	}
+
+	for k, v := range update { //converts incoming float64's to int's
+		if v, ok := v.(float64); ok {
+			_, decimal := math.Modf(v)
+			if decimal == 0 {
+				update[k] = int(v)
+			}
+		}
+	}
+
+	result, err := repo.collection.UpdateOne(context.Background(), bson.D{{"_id", objectId}}, bson.M{"$set": update})
+	if err == nil && result.ModifiedCount == 0 {
+		err = errors.New("not found")
+	}
+	return
+}
 
 func (repo Repository) DeleteBook(id string) (err error){
 	objectId, err := primitive.ObjectIDFromHex(id)
