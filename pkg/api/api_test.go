@@ -7,7 +7,6 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/mux"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -204,8 +203,7 @@ func TestGetBookByIdError(t *testing.T){
 }
 
 func TestGetBookNotFound(t *testing.T){
-	mId, _ := primitive.ObjectIDFromHex("5a80868574fdd6de0f4fa437")
-	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{{Id: mId}}}}
+	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{{}}}}
 
 	req, err := http.NewRequest("GET", "/5a80868574fdd6de0f4fa438", nil)
 	if err != nil{
@@ -228,9 +226,7 @@ func TestGetBookNotFound(t *testing.T){
 func TestCreateBookSuccess(t *testing.T){
 	r := mockRepository{}
 
-	mId, _ := primitive.ObjectIDFromHex("5a80868574fdd6de0f4fa438")
-	b := bookAPI.Book{Id:mId, BookId: 2,
-	  Title: "War and Peace", Author: "Leo Tolstoy", Year: 1869}
+	b := bookAPI.Book{BookId: 2, Title: "War and Peace", Author: "Leo Tolstoy", Year: 1869}
 
 	s, err := json.Marshal(b)
 	if err != nil {
@@ -280,9 +276,7 @@ func TestCreateBookBadInput(t *testing.T){
 func TestCreateBookError(t *testing.T){
 	r := mockRepository{err: errors.New("test error")}
 
-	mId, _ := primitive.ObjectIDFromHex("5a80868574fdd6de0f4fa438")
-	b := bookAPI.Book{Id:mId, BookId: 2,
-		Title: "War and Peace", Author: "Leo Tolstoy", Year: 1869}
+	b := bookAPI.Book{BookId: 2, Title: "War and Peace", Author: "Leo Tolstoy", Year: 1869}
 
 	s, err := json.Marshal(b)
 	if err != nil {
@@ -307,12 +301,9 @@ func TestCreateBookError(t *testing.T){
 }
 
 func TestUpsertBookUpdateSuccess(t *testing.T){
-	mId, _ := primitive.ObjectIDFromHex("5a80868574fdd6de0f4fa438")
+	b := bookAPI.Book{BookId: 2, Title: "War and Peace", Author: "Leo Tolstoy", Year: 1869}
 
-	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{{Id: mId}}}}
-
-	b := bookAPI.Book{Id:mId, BookId: 2,
-		Title: "War and Peace", Author: "Leo Tolstoy", Year: 1869}
+	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{b}}}
 
 	s, err := json.Marshal(b)
 	if err != nil {
@@ -342,9 +333,7 @@ func TestUpsertBookUpdateSuccess(t *testing.T){
 func TestUpsertBookCreateSuccess(t *testing.T){
 	r := mockRepository{id:"5a80868574fdd6de0f4fa438"}
 
-	mId, _ := primitive.ObjectIDFromHex("5a80868574fdd6de0f4fa438")
-	b := bookAPI.Book{Id:mId, BookId: 2,
-		Title: "War and Peace", Author: "Leo Tolstoy", Year: 1869}
+	b := bookAPI.Book{BookId: 2, Title: "War and Peace", Author: "Leo Tolstoy", Year: 1869}
 
 	s, err := json.Marshal(b)
 	if err != nil {
@@ -394,9 +383,7 @@ func TestUpsertBookBadInput(t *testing.T){
 func TestUpsertBookError(t *testing.T){
 	r := mockRepository{err: errors.New("test error")}
 
-	mId, _ := primitive.ObjectIDFromHex("5a80868574fdd6de0f4fa438")
-	b := bookAPI.Book{Id:mId, BookId: 2,
-		Title: "War and Peace", Author: "Leo Tolstoy", Year: 1869}
+	b := bookAPI.Book{BookId: 2, Title: "War and Peace", Author: "Leo Tolstoy", Year: 1869}
 
 	s, err := json.Marshal(b)
 	if err != nil {
@@ -529,8 +516,7 @@ func TestUpdateBookError(t *testing.T){
 }
 
 func TestDeleteBookSuccess(t *testing.T) {
-	mId, _ := primitive.ObjectIDFromHex("5a80868574fdd6de0f4fa438")
-	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{{Id: mId}}}}
+	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{{}}}}
 
 	req, err := http.NewRequest("DELETE", "/5a80868574fdd6de0f4fa438", nil)
 	if err != nil{
