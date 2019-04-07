@@ -10,14 +10,14 @@ import (
 )
 
 func main(){
-	configs, err := configuration.New("cmd/srv/config.json")
+	configs, err := configuration.New("cmd/srv/config.json") // cmd/srv/config.json in IntelliJ, config.json in VSCode
 	if err != nil {
 		fmt.Println("Error opening properties file: ", err)
 	}
 
 	db, err := database.InitializeMongoDatabase(&database.DatabaseConfig{
-		DbURL: configs.DbURL,
-		DatabaseName: configs.DatabaseName,
+		DbURL:          configs.DbURL,
+		DatabaseName:   configs.DatabaseName,
 		CollectionName: configs.CollectionName})
 	if err != nil {
 		fmt.Println("Error connecting to database: ", err)
