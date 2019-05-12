@@ -150,8 +150,8 @@ func TestGetBooksNoBooksFound(t *testing.T){
 
 	handler.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusNotFound{
-		t.Errorf("Expected 404 but got %v", rr.Code)
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected 200 but got %v", rr.Code)
 	}
 }
 
@@ -196,7 +196,7 @@ func TestGetBookByIdError(t *testing.T){
 	}
 }
 
-func TestGetBookNotFound(t *testing.T){
+func TestGetBookByIdNotFound(t *testing.T){
 	r := mockRepository{b: bookAPI.Books{Books: []bookAPI.Book{{Id: bson.ObjectIdHex("5a80868574fdd6de0f4fa437")}}}}
 
 	req, err := http.NewRequest("GET", "/5a80868574fdd6de0f4fa438", nil)

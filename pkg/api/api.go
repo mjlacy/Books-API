@@ -25,7 +25,7 @@ func HealthCheck(repo *database.Repository) http.HandlerFunc {
 }
 
 func NotFoundPage(w http.ResponseWriter, r *http.Request){
-	http.Error(w, "You have accessed an invalid URL", 404)
+	http.Error(w, "You have accessed an invalid URL", http.StatusNotFound)
 }
 
 func Get(repo bookAPI.Repository) http.HandlerFunc {
@@ -68,14 +68,8 @@ func Get(repo bookAPI.Repository) http.HandlerFunc {
 			return
 		}
 
-		if output.Books == nil {
-			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode("No books found")
-			return
-		}
-
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(output)
 	}
 }
@@ -99,7 +93,7 @@ func GetById(repo bookAPI.Repository) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Add("Location", "/" + url.PathEscape(id))
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(output)
 	}
 }
@@ -110,14 +104,14 @@ func Post(repo bookAPI.Repository) http.HandlerFunc {
 		err := json.NewDecoder(r.Body).Decode(&u)
 		if err != nil{
 			fmt.Println(err)
-			http.Error(w, err.Error(), 400)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		id, err := repo.PostBook(&u)
 		if err != nil {
 			fmt.Println(err)
-			http.Error(w, "An error occurred processing your request", 500)
+			http.Error(w, "An error occurred processing your request", http.StatusInternalServerError)
 			return
 		}
 
@@ -136,17 +130,13 @@ func Put(repo bookAPI.Repository) http.HandlerFunc {
 		err := json.NewDecoder(r.Body).Decode(&u)
 		if err != nil {
 			fmt.Println(err)
-			http.Error(w, err.Error(), 400)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		update, err := repo.PutBook(id, &u)
 		if err != nil {
 			fmt.Println(err)
-			if err.Error() == "Invalid id given" {
-				http.Error(w, err.Error(), 400)
-				return
-			}
-			http.Error(w, err.Error(), 500)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -176,7 +166,7 @@ func Patch(repo bookAPI.Repository) http.HandlerFunc {
 		err := json.NewDecoder(r.Body).Decode(&update)
 		if err != nil {
 			fmt.Println(err)
-			http.Error(w, err.Error(), 400)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -184,13 +174,13 @@ func Patch(repo bookAPI.Repository) http.HandlerFunc {
 		if err != nil {
 			fmt.Println(err)
 			if err.Error() == "not found" {
-				http.Error(w, "No book with that _id found to update", 404)
+				http.Error(w, "No book with that _id found to update", http.StatusNotFound)
 				return
 			} else if err.Error() == "Invalid id given" {
-				http.Error(w, err.Error(), 400)
+				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			http.Error(w, "An error occurred processing your request", 500)
+			http.Error(w, "An error occurred processing your request", http.StatusInternalServerError)
 			return
 		}
 
@@ -207,9 +197,9 @@ func Delete(repo bookAPI.Repository) http.HandlerFunc {
 		err := repo.DeleteBook(id)
 		if err != nil {
 			if err.Error() == "not found" {
-				http.Error(w, "not found", 404)
+				http.Error(w, "not found", http.StatusNotFound)
 			} else {
-				http.Error(w, "An error occurred processing your request", 500)
+				http.Error(w, "An error occurred processing your request", http.StatusInternalServerError)
 			}
 		}
 	}

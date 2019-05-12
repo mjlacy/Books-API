@@ -88,6 +88,9 @@ func (repo Repository) GetBookById(id string) (b *bookAPI.Book, err error){
 	session := repo.session.Clone()
 	defer session.Close()
 	err = session.DB(repo.databaseName).C(repo.collectionName).FindId(oid).One(&b)
+	if err == mgo.ErrNotFound {
+		return nil, nil
+	}
 	return
 }
 
@@ -104,8 +107,7 @@ func (repo Repository) PostBook(book *bookAPI.Book) (id string, err error){
 
 func (repo Repository) PutBook(id string, book *bookAPI.Book) (updateId string, err error){
 	if !bson.IsObjectIdHex(id){
-		err = errors.New("Invalid id given")
-		return
+		id = bson.NewObjectId().Hex()
 	}
 
 	if book.Id.Hex() != id{
