@@ -5,7 +5,7 @@ import (
 	"bookAPI/pkg/database"
 
 	"encoding/json"
-	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -17,9 +17,10 @@ func HealthCheck(repo *database.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request){
 		err := repo.Ping()
 		if err != nil {
-			fmt.Println("Error connecting to database: ", err)
+			log.Println("Error connecting to database:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("Error connecting to the database"))
+			return
 		}
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))
@@ -38,7 +39,7 @@ func Get(repo bookAPI.Repository) http.HandlerFunc {
 		if bookIdString := r.URL.Query().Get("bookId"); bookIdString != ""{
 			bookId, err = strconv.Atoi(bookIdString)
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
 				w.WriteHeader(http.StatusBadRequest)
 				json.NewEncoder(w).Encode("bookId query must be a nonzero positive integer")
 				return
@@ -48,7 +49,7 @@ func Get(repo bookAPI.Repository) http.HandlerFunc {
 		if yearString := r.URL.Query().Get("year"); yearString != ""{
 			year, err = strconv.Atoi(yearString)
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
 				w.WriteHeader(http.StatusBadRequest)
 				json.NewEncoder(w).Encode("year query must be a nonzero positive integer")
 				return
@@ -64,7 +65,7 @@ func Get(repo bookAPI.Repository) http.HandlerFunc {
 
 		output, err := repo.GetBooks(search)
 		if err != nil{
-			fmt.Println(err)
+			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode("An error occurred processing this request")
 			return
@@ -82,7 +83,7 @@ func GetById(repo bookAPI.Repository) http.HandlerFunc {
 
 		output, err := repo.GetBookById(id)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode("An error occurred processing this request")
 			return
@@ -105,17 +106,19 @@ func Post(repo bookAPI.Repository) http.HandlerFunc {
 		var u = bookAPI.Book{}
 		err := json.NewDecoder(r.Body).Decode(&u)
 		if err != nil{
-			fmt.Println(err)
+			log.Println(err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		id, err := repo.PostBook(&u)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			http.Error(w, "An error occurred processing your request", http.StatusInternalServerError)
 			return
 		}
+
+		u.Id = id
 
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Add("Location", "/" + url.PathEscape(id))
@@ -131,16 +134,18 @@ func Put(repo bookAPI.Repository) http.HandlerFunc {
 		var u = bookAPI.Book{}
 		err := json.NewDecoder(r.Body).Decode(&u)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		update, err := repo.PutBook(id, &u)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		u.Id = id
 
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Add("Location", "/" + url.PathEscape(id))
@@ -167,14 +172,14 @@ func Patch(repo bookAPI.Repository) http.HandlerFunc {
 		// err := decoder.Decode(&update)
 		err := json.NewDecoder(r.Body).Decode(&update)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		err = repo.PatchBook(id, update)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			if err.Error() == "not found" {
 				http.Error(w, "No book with that _id found to update", http.StatusNotFound)
 				return

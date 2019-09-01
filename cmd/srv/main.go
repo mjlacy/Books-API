@@ -5,7 +5,7 @@ import (
 	"bookAPI/pkg/database"
 	"bookAPI/pkg/routes"
 
-	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/rs/cors"
@@ -14,7 +14,7 @@ import (
 func main(){
 	configs, err := configuration.New("cmd/srv/config.json") // cmd/srv/config.json in IntelliJ, config.json in VSCode
 	if err != nil {
-		fmt.Println("Error opening properties file: ", err)
+		log.Println("Error opening properties file: ", err)
 	}
 
 	db, err := database.InitializeMongoDatabase(&database.DatabaseConfig{
@@ -22,7 +22,7 @@ func main(){
 		DatabaseName:   configs.DatabaseName,
 		CollectionName: configs.CollectionName})
 	if err != nil {
-		fmt.Println("Error connecting to database: ", err)
+		log.Println("Error connecting to database: ", err)
 	}
 
 	r := routes.New()

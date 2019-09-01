@@ -19,19 +19,19 @@ func New() *Router{
 	}
 }
 func (r *Router)CreateRoutes(db *database.Repository){
-	r.HandleFunc("/health", api.HealthCheck(db)).Methods("GET")
+	r.HandleFunc("/health", api.HealthCheck(db)).Methods(http.MethodGet)
 
-	r.HandleFunc("/", api.Get(db)).Methods("GET")
+	r.HandleFunc("/", api.Get(db)).Methods(http.MethodGet)
 
-	r.HandleFunc("/{id}", api.GetById(db)).Methods("GET")
+	r.HandleFunc("/{id}", api.GetById(db)).Methods(http.MethodGet)
 
-	r.HandleFunc("/", api.Post(db)).Methods("POST")
+	r.HandleFunc("/", api.Post(db)).Methods(http.MethodPost)
 
-	r.HandleFunc("/{id}", api.Put(db)).Methods("PUT")
+	r.HandleFunc("/{id}", api.Put(db)).Methods(http.MethodPut)
 
-	r.HandleFunc("/{id}", api.Patch(db)).Methods("PATCH")
+	r.HandleFunc("/{id}", api.Patch(db)).Methods(http.MethodPatch)
 
-	r.HandleFunc("/{id}", api.Delete(db)).Methods("DELETE")
+	r.HandleFunc("/{id}", api.Delete(db)).Methods(http.MethodDelete)
 
 	r.NotFoundHandler = http.HandlerFunc(api.NotFoundPage)
 }
