@@ -1,10 +1,12 @@
 package routes
 
 import (
-	"BookAPI/pkg/api"
-	"BookAPI/pkg/database"
-	"github.com/gorilla/mux"
+	"bookAPI/pkg/api"
+	"bookAPI/pkg/database"
+
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 type Router struct {

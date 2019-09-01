@@ -2,14 +2,16 @@ package api
 
 import (
 	"bookAPI"
+
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/globalsign/mgo/bson"
-	"github.com/gorilla/mux"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/globalsign/mgo/bson"
+	"github.com/gorilla/mux"
 )
 
 type mockRepository struct {

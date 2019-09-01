@@ -1,14 +1,16 @@
 package api
 
 import (
-	"BookAPI/pkg/database"
 	"bookAPI"
+	"bookAPI/pkg/database"
+
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/mux"
 	"net/http"
 	"net/url"
 	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
 func HealthCheck(repo *database.Repository) http.HandlerFunc {

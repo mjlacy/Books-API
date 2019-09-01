@@ -2,11 +2,13 @@ package database
 
 import (
 	"bookAPI"
+
 	"encoding/base64"
 	"errors"
+	"math"
+
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
-	"math"
 )
 
 type DatabaseConfig struct {

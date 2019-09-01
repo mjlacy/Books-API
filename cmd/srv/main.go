@@ -1,12 +1,14 @@
 package main
 
 import (
-	"BookAPI/pkg/configuration"
-	"BookAPI/pkg/database"
-	"BookAPI/pkg/routes"
+	"bookAPI/pkg/configuration"
+	"bookAPI/pkg/database"
+	"bookAPI/pkg/routes"
+
 	"fmt"
-	"github.com/rs/cors"
 	"net/http"
+
+	"github.com/rs/cors"
 )
 
 func main(){
