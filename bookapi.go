@@ -1,5 +1,7 @@
 package bookAPI
 
+import "errors"
+
 type Book struct {
 	Id     string `json:"_id" bson:"_id,omitempty"`
 	BookId int    `json:"bookId" bson:"bookId"`
@@ -20,3 +22,7 @@ type Repository interface {
 	PatchBook(id string, update map[string]interface{}) (err error)
 	DeleteBook(id string) (err error)
 }
+
+var (
+	ErrNotFound = errors.New("No book found with that id")
+)

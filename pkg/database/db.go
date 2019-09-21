@@ -4,7 +4,6 @@ import (
 	"bookAPI"
 
 	"encoding/base64"
-	"errors"
 	"math"
 
 	"github.com/globalsign/mgo"
@@ -173,7 +172,7 @@ func (repo Repository) PatchBook(id string, update map[string]interface{}) (err 
 	if bson.IsObjectIdHex(id){
 		oid = bson.ObjectIdHex(id)
 	} else {
-		err = errors.New("Invalid id given")
+		err = bookAPI.ErrNotFound
 		return
 	}
 	session := repo.session.Clone()
@@ -188,14 +187,28 @@ func (repo Repository) PatchBook(id string, update map[string]interface{}) (err 
 		}
 	}
 
-	err = session.DB(repo.databaseName).C(repo.collectionName).UpdateId(oid, bson.M{"$set": update}) //Will error if not found
+	err = session.DB(repo.databaseName).C(repo.collectionName).UpdateId(oid, bson.M{"$set": update})
+	if err != nil && err.Error() =="not found" {
+		err = bookAPI.ErrNotFound
+	}
 	return
 }
 
 func (repo Repository) DeleteBook(id string) (err error) {
+	var oid bson.ObjectId
+	if bson.IsObjectIdHex(id){
+		oid = bson.ObjectIdHex(id)
+	} else {
+		err = bookAPI.ErrNotFound
+		return
+	}
+
 	session := repo.session.Clone()
 	defer session.Close()
 
-	err = session.DB(repo.databaseName).C(repo.collectionName).RemoveId(bson.ObjectIdHex(id)) //Will error if not found
+	err = session.DB(repo.databaseName).C(repo.collectionName).RemoveId(oid)
+	if err != nil && err.Error() =="not found" {
+		err = bookAPI.ErrNotFound
+	}
 	return
 }

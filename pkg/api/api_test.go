@@ -53,7 +53,7 @@ func (r mockRepository) PutBook(id string, book *bookAPI.Book) (updateId string,
 func (r mockRepository) PatchBook(id string, update map[string]interface{}) (err error) {
 	if len(r.b.Books) != 0 {
 		if r.b.Books[0].Id != id {
-			err = errors.New("not found")
+			err = bookAPI.ErrNotFound
 			return
 		}
 	}
@@ -507,7 +507,7 @@ func TestDeleteBookSuccess(t *testing.T) {
 }
 
 func TestDeleteBookNotFound(t *testing.T) {
-	r := mockRepository{err: errors.New("not found")}
+	r := mockRepository{err: bookAPI.ErrNotFound}
 
 	req, err := http.NewRequest(http.MethodDelete, "/5a80868574fdd6de0f4fa438", nil)
 	if err != nil {

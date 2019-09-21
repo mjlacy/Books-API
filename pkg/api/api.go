@@ -107,7 +107,7 @@ func Post(repo bookAPI.Repository) http.HandlerFunc {
 		err := json.NewDecoder(r.Body).Decode(&u)
 		if err != nil{
 			log.Println(err)
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
 
@@ -135,7 +135,7 @@ func Put(repo bookAPI.Repository) http.HandlerFunc {
 		err := json.NewDecoder(r.Body).Decode(&u)
 		if err != nil {
 			log.Println(err)
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
 		update, err := repo.PutBook(id, &u)
@@ -145,10 +145,14 @@ func Put(repo bookAPI.Repository) http.HandlerFunc {
 			return
 		}
 
-		u.Id = id
+		if update != "" {
+			u.Id = update
+		} else {
+			u.Id = id
+		}
 
 		w.Header().Set("Content-Type", "application/json")
-		w.Header().Add("Location", "/" + url.PathEscape(id))
+		w.Header().Add("Location", "/" + url.PathEscape(u.Id))
 
 		if update != "" {
 			w.WriteHeader(http.StatusCreated)
@@ -173,18 +177,15 @@ func Patch(repo bookAPI.Repository) http.HandlerFunc {
 		err := json.NewDecoder(r.Body).Decode(&update)
 		if err != nil {
 			log.Println(err)
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
 
 		err = repo.PatchBook(id, update)
 		if err != nil {
 			log.Println(err)
-			if err.Error() == "not found" {
-				http.Error(w, "No book with that _id found to update", http.StatusNotFound)
-				return
-			} else if err.Error() == "Invalid id given" {
-				http.Error(w, err.Error(), http.StatusBadRequest)
+			if err == bookAPI.ErrNotFound {
+				http.Error(w, err.Error(), http.StatusNotFound)
 				return
 			}
 			http.Error(w, "An error occurred processing your request", http.StatusInternalServerError)
@@ -203,11 +204,13 @@ func Delete(repo bookAPI.Repository) http.HandlerFunc {
 
 		err := repo.DeleteBook(id)
 		if err != nil {
-			if err.Error() == "not found" {
-				http.Error(w, "not found", http.StatusNotFound)
-			} else {
-				http.Error(w, "An error occurred processing your request", http.StatusInternalServerError)
+			log.Println(err)
+			if err == bookAPI.ErrNotFound {
+				http.Error(w, err.Error(), http.StatusNotFound)
+				return
 			}
+			http.Error(w, "An error occurred processing your request", http.StatusInternalServerError)
+			return
 		}
 	}
 }
