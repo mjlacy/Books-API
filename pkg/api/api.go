@@ -14,7 +14,7 @@ import (
 )
 
 func HealthCheck(repo *database.Repository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request){
+	return func(w http.ResponseWriter, r *http.Request) {
 		err := repo.Ping()
 		if err != nil {
 			log.Println("Error connecting to database:", err)
@@ -27,16 +27,16 @@ func HealthCheck(repo *database.Repository) http.HandlerFunc {
 	}
 }
 
-func NotFoundPage(w http.ResponseWriter, r *http.Request){
+func NotFoundPage(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "You have accessed an invalid URL", http.StatusNotFound)
 }
 
 func Get(repo bookAPI.Repository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request){
+	return func(w http.ResponseWriter, r *http.Request) {
 		var bookId int
 		var year int
 		var err error
-		if bookIdString := r.URL.Query().Get("bookId"); bookIdString != ""{
+		if bookIdString := r.URL.Query().Get("bookId"); bookIdString != "" {
 			bookId, err = strconv.Atoi(bookIdString)
 			if err != nil {
 				log.Println(err)
@@ -46,7 +46,7 @@ func Get(repo bookAPI.Repository) http.HandlerFunc {
 			}
 		}
 
-		if yearString := r.URL.Query().Get("year"); yearString != ""{
+		if yearString := r.URL.Query().Get("year"); yearString != "" {
 			year, err = strconv.Atoi(yearString)
 			if err != nil {
 				log.Println(err)
@@ -56,7 +56,7 @@ func Get(repo bookAPI.Repository) http.HandlerFunc {
 			}
 		}
 
-		search := bookAPI.Book{
+		search := bookAPI.Book {
 			BookId: bookId,
 			Title: r.URL.Query().Get("title"),
 			Author: r.URL.Query().Get("author"),
@@ -64,7 +64,7 @@ func Get(repo bookAPI.Repository) http.HandlerFunc {
 		}
 
 		output, err := repo.GetBooks(search)
-		if err != nil{
+		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode("An error occurred processing this request")
@@ -78,7 +78,7 @@ func Get(repo bookAPI.Repository) http.HandlerFunc {
 }
 
 func GetById(repo bookAPI.Repository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request){
+	return func(w http.ResponseWriter, r *http.Request) {
 		id := mux.Vars(r)["id"]
 
 		output, err := repo.GetBookById(id)
@@ -102,10 +102,10 @@ func GetById(repo bookAPI.Repository) http.HandlerFunc {
 }
 
 func Post(repo bookAPI.Repository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request){
+	return func(w http.ResponseWriter, r *http.Request) {
 		var u = bookAPI.Book{}
 		err := json.NewDecoder(r.Body).Decode(&u)
-		if err != nil{
+		if err != nil {
 			log.Println(err)
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
@@ -128,7 +128,7 @@ func Post(repo bookAPI.Repository) http.HandlerFunc {
 }
 
 func Put(repo bookAPI.Repository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request){
+	return func(w http.ResponseWriter, r *http.Request) {
 		id := mux.Vars(r)["id"]
 
 		var u = bookAPI.Book{}
@@ -199,7 +199,7 @@ func Patch(repo bookAPI.Repository) http.HandlerFunc {
 }
 
 func Delete(repo bookAPI.Repository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request){
+	return func(w http.ResponseWriter, r *http.Request) {
 		id := mux.Vars(r)["id"]
 
 		err := repo.DeleteBook(id)
