@@ -21,7 +21,7 @@ func GenerateUniqueId(books bookAPI.Books) (id string, err error) {
 	id = hex.EncodeToString(bytes)
 
 	for _, book := range books.Books {
-		if book.Id == id {
+		if book.Id.Hex() == id {
 			return GenerateUniqueId(books)
 		}
 	}

@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/globalsign/mgo/bson"
 	"github.com/gorilla/mux"
 )
 
@@ -27,7 +28,7 @@ func (r mockRepository) GetBooks(s bookAPI.Book) (b bookAPI.Books, err error) {
 
 func (r mockRepository) GetBookById(id string) (b *bookAPI.Book, err error) {
 	if len(r.b.Books) != 0 {
-		if r.b.Books[0].Id == id {
+		if r.b.Books[0].Id.Hex() == id {
 			b = &r.b.Books[0]
 		} else {
 			b = nil
@@ -50,9 +51,9 @@ func (r mockRepository) PutBook(id string, book *bookAPI.Book) (updateId string,
 	return
 }
 
-func (r mockRepository) PatchBook(id string, update map[string]interface{}) (err error) {
+func (r mockRepository) PatchBook(id string, update bson.M) (err error) {
 	if len(r.b.Books) != 0 {
-		if r.b.Books[0].Id != id {
+		if r.b.Books[0].Id.Hex() != id {
 			err = bookAPI.ErrNotFound
 			return
 		}

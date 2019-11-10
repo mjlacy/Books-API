@@ -118,8 +118,6 @@ func Post(repo bookAPI.Repository) http.HandlerFunc {
 			return
 		}
 
-		u.Id = id
-
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Add("Location", "/" + url.PathEscape(id))
 		w.WriteHeader(http.StatusCreated)
@@ -145,14 +143,8 @@ func Put(repo bookAPI.Repository) http.HandlerFunc {
 			return
 		}
 
-		if update != "" {
-			u.Id = update
-		} else {
-			u.Id = id
-		}
-
 		w.Header().Set("Content-Type", "application/json")
-		w.Header().Add("Location", "/" + url.PathEscape(u.Id))
+		w.Header().Add("Location", "/" + url.PathEscape(id))
 
 		if update != "" {
 			w.WriteHeader(http.StatusCreated)

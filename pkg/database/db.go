@@ -22,14 +22,6 @@ type Repository struct {
 	collectionName string
 }
 
-type book struct {
-	Id     bson.ObjectId `json:"_id" bson:"_id,omitempty"`
-	BookId int           `json:"bookId" bson:"bookId"`
-	Title  string        `json:"title" bson:"title"`
-	Author string        `json:"author" bson:"author"`
-	Year   int           `json:"year" bson:"year"`
-}
-
 func InitializeMongoDatabase(config *DatabaseConfig) (r *Repository, err error) {
 	url, err := base64.StdEncoding.DecodeString(config.DbURL)
 	if err != nil {
@@ -42,31 +34,6 @@ func InitializeMongoDatabase(config *DatabaseConfig) (r *Repository, err error) 
 	session.SetMode(mgo.Monotonic, true)
 
 	r = &Repository{session: session, databaseName: config.DatabaseName, collectionName: config.CollectionName}
-	return
-}
-
-func convertBookToObjectId(book bookAPI.Book) (b book) {
-	if book.Id != "" {
-		b.Id = bson.ObjectIdHex(book.Id)
-	} else {
-		b.Id = bson.NewObjectId()
-	}
-
-	b.BookId = book.BookId
-	b.Title = book.Title
-	b.Author = book.Author
-	b.Year = book.Year
-
-	return
-}
-
-func convertBookToString(book book) (b bookAPI.Book) {
-	b.Id = book.Id.Hex()
-	b.BookId = book.BookId
-	b.Title = book.Title
-	b.Author = book.Author
-	b.Year = book.Year
-
 	return
 }
 
@@ -83,7 +50,7 @@ func (repo Repository) GetBooks(s bookAPI.Book) (b bookAPI.Books, err error) {
 	conditions := []bson.M{}
 	query := bson.M{}
 
-	var results []book
+	var results []bookAPI.Book
 
 	if s.BookId != 0 {
 		conditions = append(conditions, bson.M{"bookId": s.BookId})
@@ -108,7 +75,7 @@ func (repo Repository) GetBooks(s bookAPI.Book) (b bookAPI.Books, err error) {
 	err = session.DB(repo.databaseName).C(repo.collectionName).Find(query).All(&results)
 	if err == nil {
 		for _, book := range results {
-			b.Books = append(b.Books, convertBookToString(book))
+			b.Books = append(b.Books, book)
 		}
 	}
 	return
@@ -124,15 +91,10 @@ func (repo Repository) GetBookById(id string) (b *bookAPI.Book, err error) {
 	session := repo.session.Clone()
 	defer session.Close()
 
-	var book book
-
-	err = session.DB(repo.databaseName).C(repo.collectionName).FindId(oid).One(&book)
+	err = session.DB(repo.databaseName).C(repo.collectionName).FindId(oid).One(&b)
 	if err == mgo.ErrNotFound {
 		return nil, nil
 	}
-
-	b2 := convertBookToString(book)
-	b = &b2
 
 	return
 }
@@ -141,10 +103,7 @@ func (repo Repository) PostBook(b *bookAPI.Book) (id string, err error) {
 	session := repo.session.Clone()
 	defer session.Close()
 
-	book := convertBookToObjectId(*b)
-
-	id = book.Id.Hex()
-	err = session.DB(repo.databaseName).C(repo.collectionName).Insert(book)
+	err = session.DB(repo.databaseName).C(repo.collectionName).Insert(b)
 	return
 }
 
@@ -153,21 +112,16 @@ func (repo Repository) PutBook(id string, b *bookAPI.Book) (updateId string, err
 		id = bson.NewObjectId().Hex()
 	}
 
-	book := convertBookToObjectId(*b)
-
-	if book.Id.Hex() != id {
-		book.Id = bson.ObjectIdHex(id)
-	}
 	session := repo.session.Clone()
 	defer session.Close()
-	update, err := session.DB(repo.databaseName).C(repo.collectionName).UpsertId(bson.ObjectIdHex(id), book)
+	update, err := session.DB(repo.databaseName).C(repo.collectionName).UpsertId(bson.ObjectIdHex(id), b)
 	if update != nil && update.UpsertedId != nil {
 		updateId = update.UpsertedId.(bson.ObjectId).Hex()
 	}
 	return
 }
 
-func (repo Repository) PatchBook(id string, update map[string]interface{}) (err error) {
+func (repo Repository) PatchBook(id string, update bson.M) (err error) {
 	var oid bson.ObjectId
 	if bson.IsObjectIdHex(id){
 		oid = bson.ObjectIdHex(id)

@@ -1,13 +1,17 @@
 package bookAPI
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/globalsign/mgo/bson"
+)
 
 type Book struct {
-	Id     string `json:"_id" bson:"_id,omitempty"`
-	BookId int    `json:"bookId" bson:"bookId"`
-	Title  string `json:"title" bson:"title"`
-	Author string `json:"author" bson:"author"`
-	Year   int    `json:"year" bson:"year"`
+	Id     bson.ObjectId `json:"_id" bson:"_id,omitempty"`
+	BookId int           `json:"bookId" bson:"bookId"`
+	Title  string        `json:"title" bson:"title"`
+	Author string        `json:"author" bson:"author"`
+	Year   int           `json:"year" bson:"year"`
 }
 
 type Books struct {
@@ -19,7 +23,7 @@ type Repository interface {
 	GetBookById(id string) (b *Book, err error)
 	PostBook(book *Book) (id string, err error)
 	PutBook(id string, book *Book) (updateId string, err error)
-	PatchBook(id string, update map[string]interface{}) (err error)
+	PatchBook(id string, update bson.M) (err error)
 	DeleteBook(id string) (err error)
 }
 
